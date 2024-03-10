@@ -1,0 +1,3 @@
+should_summarize: true
+record_verdict_only: false
+record_prompts: false

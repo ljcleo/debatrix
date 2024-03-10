@@ -1,0 +1,2 @@
+streaming_delay: 0.1
+streaming_chunk_size: 64

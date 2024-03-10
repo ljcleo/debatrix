@@ -1,0 +1,22 @@
+motion: The US should increase military spending.
+pro_side:
+  - name: Alec
+con_side:
+  - name: blamonkey
+info_slide:
+  "Below are extra information provided by Alec, which may include Alec's
+  arguments:
+
+
+  1: The BoP is shared.
+
+  2: A forfeit is an automatic loss unless apologized for in the comments."
+speech_order:
+  - Alec
+  - blamonkey
+  - Alec
+  - blamonkey
+  - Alec
+  - blamonkey
+  - Alec
+  - blamonkey
