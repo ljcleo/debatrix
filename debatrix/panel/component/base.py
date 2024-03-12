@@ -1,8 +1,7 @@
 from typing import Any
 
-from newspeak.core.common import DimensionName
-
 from ...core.action import AllPanelActions
+from ...core.common import DimensionName
 from ...core.component import DebateObject
 from ..interface import PanelInterfaceClient
 from .common import Stage

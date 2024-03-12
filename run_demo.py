@@ -20,13 +20,28 @@ class ScriptArgs:
 
 
 if __name__ in {"__main__", "__mp_main__"}:
-    arg_parser = ArgumentParser()
-    arg_parser.add_argument("preset")
-    arg_parser.add_argument("-o", "--override-config", action="store_true")
-    arg_parser.add_argument("-v", "--debug-server", action="store_true")
-    arg_parser.add_argument("-l", "--log-server-info", action="store_true")
-    arg_parser.add_argument("-h", "--ui-host", default="0.0.0.0")
-    arg_parser.add_argument("-p", "--ui-port", default=58000, type=int)
+    arg_parser = ArgumentParser(description="Debatrix UI demo (singleton application)")
+
+    arg_parser.add_argument("preset", help="select debate & config preset")
+
+    arg_parser.add_argument(
+        "-o",
+        "--override-config",
+        action="store_true",
+        help="override current config with preset ones",
+    )
+
+    arg_parser.add_argument(
+        "-v", "--debug-server", action="store_true", help="enable FastAPI & NiceGUI debug mode"
+    )
+
+    arg_parser.add_argument(
+        "-l", "--log-server-info", action="store_true", help="display FastAPI info log"
+    )
+
+    arg_parser.add_argument("-i", "--ui-host", default="0.0.0.0", help="set UI demo host")
+    arg_parser.add_argument("-p", "--ui-port", default=58000, type=int, help="set UI demo port")
+
     args: ScriptArgs = arg_parser.parse_args(namespace=ScriptArgs())
 
     preset_path: Path = Path("./preset") / args.preset

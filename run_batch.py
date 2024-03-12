@@ -128,17 +128,45 @@ async def main(platform: Platform, /, *, args: ScriptArgs) -> None:
 
 
 if __name__ == "__main__":
-    arg_parser = ArgumentParser()
-    arg_parser.add_argument("preset")
-    arg_parser.add_argument("framework", choices=("gpt", "non_iter", "debatrix"))
-    arg_parser.add_argument("start", type=int)
-    arg_parser.add_argument("stop", type=int)
-    arg_parser.add_argument("repeat", type=int)
-    arg_parser.add_argument("-d", "--dimensions", nargs="*")
-    arg_parser.add_argument("-s", "--should-summarize", action="store_true")
-    arg_parser.add_argument("-l", "--llm", default="test", choices=("test", "chatgpt", "gpt4"))
-    arg_parser.add_argument("-v", "--debug-server", action="store_true")
-    arg_parser.add_argument("-r", "--root_dir", default=".")
+    arg_parser = ArgumentParser(description="Debatrix batch judging")
+
+    arg_parser.add_argument("preset", help="select debate & config preset")
+
+    arg_parser.add_argument(
+        "framework", choices=("gpt", "non_iter", "debatrix"), help="switch judging framework"
+    )
+
+    arg_parser.add_argument("start", type=int, help="set preset debate start index")
+    arg_parser.add_argument("stop", type=int, help="set preset debate stop index")
+    arg_parser.add_argument("repeat", type=int, help="repeat judging this number of times")
+
+    arg_parser.add_argument(
+        "-d", "--dimensions", nargs="*", help="select a subset of judging dimensions"
+    )
+
+    arg_parser.add_argument(
+        "-s",
+        "--should-summarize",
+        action="store_true",
+        help="summarize judgment from different dimensions",
+    )
+
+    arg_parser.add_argument(
+        "-l",
+        "--llm",
+        default="test",
+        choices=("test", "chatgpt", "gpt4"),
+        help="switch backbone LLM",
+    )
+
+    arg_parser.add_argument(
+        "-v", "--debug-server", action="store_true", help="enable FastAPI debug mode"
+    )
+
+    arg_parser.add_argument(
+        "-r", "--root_dir", default=".", help="choose a different root directory"
+    )
+
     args: ScriptArgs = arg_parser.parse_args(namespace=ScriptArgs())
 
     preset_path: Path = Path("./preset") / args.preset
