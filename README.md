@@ -49,8 +49,6 @@ options:
 
 ### UI Demo (Singleton Application)
 
-*Note: this demo is a singleton application; it does not support multiple sessions.*
-
 ```{bash}
 usage: run_demo.py [-h] [-o] [-v] [-l] [-i UI_HOST] [-p UI_PORT] preset
 
@@ -71,3 +69,7 @@ options:
   -p UI_PORT, --ui-port UI_PORT
                         set UI demo port
 ```
+
+When the script starts running, visit <https://localhost:58000> (change the address and/or port according to your command line arguments) to use the demo.
+
+*Note: this demo is a singleton application; it does not support multiple sessions.*
