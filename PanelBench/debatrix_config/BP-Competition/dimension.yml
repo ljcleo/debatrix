@@ -1,0 +1,97 @@
+- name: argument
+  weight: 1
+  allow_tie: true
+  prompt:
+    judge_debate: You are assigned to assess the argument frameworks in the debate. First, for each debater, summarize their arguments, especially unique ones, and whether they are on topic and logically sound. Next, for each debater, assess whether their argument framework is complete and coherent. Finally, compare their argument frameworks.
+    analyze_speech: You are assigned to assess the argument frameworks in the debate. First, list the arguments and counter-arguments in the new speech. Next, analyze whether they are on topic and logically sound.
+    use_previous: Check whether all arguments on the debater's side are coherent, and what arguments are unique in this speech.
+    judge_by_analysis: You are assigned to assess the argument frameworks in the debate. First, for each debater, summarize their arguments, especially unique ones, and whether they are on topic and logically sound. Next, for each debater, assess whether their argument framework is complete and coherent. Finally, compare their argument frameworks.
+- name: support
+  weight: 1
+  allow_tie: true
+  prompt:
+    judge_debate: You are assigned to assess the supporting analysis of arguments in the debate. First, for each debater, summarie their arguments, especially how they are supported. Next, for each debater, assess whether their supporting materials are credible and sufficient within the greater context of the debate. Finally, compare their supporting analyses.
+    analyze_speech: You are assigned to assess the supporting analysis of arguments in the debate. First, list the arguments and counter-arguments in the new speech. Next, analyze whether they are supported by empirical evidence, logical mechanism or moral intuitions, and whether their supporting materials are credible and sufficient.
+    use_previous: ""
+    judge_by_analysis: You are assigned to assess the supporting analysis of arguments in the debate. First, for each debater, summarie their arguments, especially how they are supported. Next, for each debater, assess whether their supporting materials are credible and sufficient within the greater context of the debate. Finally, compare their supporting analyse.
+- name: clash
+  weight: 1
+  allow_tie: true
+  prompt:
+    judge_debate: You are assigned to assess the clashes in the debate. First, for each debater, summarie their arguments, especially how debaters on the same half (OG vs OO, CG vs CO) refute against each other. Next, analyze the clashes in the debate, summarizing the key point of the clash and what arguments are made, comparing the relative argument strength in each clash, and judging whether the clash is a tie or someone is more persuasive. Finally, compare their performance in all clashes.
+    analyze_speech: You are assigned to assess the clashes in the debate. First, list the arguments and counter-arguments in the new speech.
+    use_previous: Next, list what clashes the speech involves. Finally, if the opponent on the same half (OG vs OO, CG vs CO) has offered their arguments, check how they refute against each other.
+    judge_by_analysis: You are assigned to assess the clashes in the debate. First, for each debater, summarie their arguments, especially how debaters on the same half (OG vs OO, CG vs CO) refute against each other. Next, analyze the clashes in the debate, summarizing the key point of the clash and what arguments are made, comparing the relative argument strength in each clash, and judging whether the clash is a tie or someone is more persuasive. Finally, compare their performance in all clashes.
+- name: language
+  weight: 1
+  allow_tie: true
+  prompt:
+    judge_debate: You are assigned to assess the language style in the debate. First, for each debater, analyze whether the speech is comprehensible, clearly and precisely convey the debater's meaning, and effectively convey the significance of the debater’s claim. Informal and/or aggressive/confrontational language is often used to make speeches more vivid, confident and engaging, but the debaters must respect each other; unsportsmanlike or toxic behavior like personal insult is unacceptable. Finally, compare their language style.
+    analyze_speech: You are assigned to assess the language style in the debate. Analyze whether the speech is comprehensible, clearly and precisely convey the debater’s meaning, and effectively convey the significance of the debater’s claim. Informal and/or aggressive/confrontational language is often used to make speeches more vivid, confident and engaging, but the debaters must respect each other; unsportsmanlike or toxic behavior like personal insult is unacceptable.
+    use_previous: ""
+    judge_by_analysis: You are assigned to assess the language style in the debate. Summarize the language style of each debater and compare them.
+- name: general
+  weight: 0
+  allow_tie: false
+  prompt:
+    judge_debate: |
+      Please judge the debate by assessing which debater is most persuasive. Think critically and apply the following steps:
+
+      1. Summarize each debater's speeches, including their arguments and supporting analyses. Quote highlights when necessary.
+
+      2. Compare each debater's arguments on these criteria:
+
+        - whether the arguments are on topic
+        - whether the arguments are logically sound and consistent
+        - whether the argument framework is complete
+        - whether the supporting analyses are truthful and rigorous
+        - whether the rebuttals are effective (only consider rebuttals between OG and OO, and rebuttals between CG and CO)
+
+        Specifically:
+
+        - OG and OO are not responsible for CO and CG's arguments and rebuttals; their arguments remain strong if the stronger part is not challenged by CO or CG.
+        - CG and CO can only be credited for contributions to the debate that go beyond what has already been contributed by OG or OO respectively.
+        - any new arguments in speeches 7 and 8 should be ignored; CG and CO cannot solely use them to win the clash.
+
+      3. List the clashes in the debate between both sides and analyze them. For each clash, first summarize the key point of the clash and what arguments are made, and then analyze the relative strength of them; finally, judge whether the clash is a tie or someone is more persuasive.
+
+        Specifically:
+
+        - OG and OO are not responsible for CO and CG's arguments and rebuttals; their arguments remain strong if the stronger part is not challenged by CO or CG.
+        - CG and CO can only be credited for contributions to the clash that go beyond what has already been contributed by OG or OO respectively.
+        - any new arguments in speeches 7 and 8 should be ignored; CG and CO cannot solely use them to win the clash.
+
+      4. Compare each debater's language style. This includes whether they are comprehensible, whether they clearly and precisely convey their meanings, and whether they effectively convey the significance of their claims. Note that in oral competitive debates, informal and/or aggressive/confrontational language is often used to make speeches more vivid, confident and engaging; however, toxic behavior like personal insult should be punished.
+    analyze_speech: |
+      Please provide a detailed summary of the new speech, according to its role. Specifically, if the new speech is speech 1, how the motion is defined; if the new speech is speech 5 or 6, what extensions are provided; if the new speech is speech 7 or 8, how the debate is summarized.
+
+      You need to list the arguments one by one along with their supporting analyses. Quote highlights when necessary.
+
+      After the list of arguments, write a short paragraph to summarize the language style: whether they are comprehensible, whether they clearly and precisely convey their meanings, and whether they effectively convey the significance of their claims. Note that in oral competitive debates, informal and/or aggressive/confrontational language is often used to make speeches more vivid, confident and engaging; however, toxic behavior like personal insult should be punished.
+    use_previous: To clarify arguments already made in the debate, you should refer to previous speeches; you also need to report whether the new speech involves in any clashes, and which arguments in the speech are relevant to each clash.
+    judge_by_analysis: |
+      Please judge the debate by assessing which debater is most persuasive. Think critically and apply the following steps:
+
+      1. Compare each debater's arguments on these criteria:
+
+        - whether the arguments are on topic
+        - whether the arguments are logically sound and consistent
+        - whether the argument framework is complete
+        - whether the supporting analyses are truthful and rigorous
+        - whether the rebuttals are effective (only consider rebuttals between OG and OO, and rebuttals between CG and CO)
+
+        Specifically:
+
+        - OG and OO are not responsible for CO and CG's arguments and rebuttals; their arguments remain strong if the stronger part is not challenged by CO or CG.
+        - CG and CO can only be credited for contributions to the debate that go beyond what has already been contributed by OG or OO respectively.
+        - any new arguments in speeches 7 and 8 should be ignored; CG and CO cannot solely use them to win the clash.
+
+      2. List the clashes in the debate between both sides and analyze them. For each clash, first summarize the key point of the clash and what arguments are made, and then analyze the relative strength of them; finally, judge whether the clash is a tie or someone is more persuasive.
+
+        Specifically:
+
+        - OG and OO are not responsible for CO and CG's arguments and rebuttals; their arguments remain strong if the stronger part is not challenged by CO or CG.
+        - CG and CO can only be credited for contributions to the clash that go beyond what has already been contributed by OG or OO respectively.
+        - any new arguments in speeches 7 and 8 should be ignored; CG and CO cannot solely use them to win the clash.
+
+      3. Compare each debater's language style. This includes whether they are comprehensible, whether they clearly and precisely convey their meanings, and whether they effectively convey the significance of their claims. Note that in oral competitive debates, informal and/or aggressive/confrontational language is often used to make speeches more vivid, confident and engaging; however, toxic behavior like personal insult should be punished.
