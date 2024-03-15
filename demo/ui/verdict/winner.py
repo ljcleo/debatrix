@@ -1,4 +1,3 @@
-from asyncio import TaskGroup
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from functools import partial
@@ -58,7 +57,7 @@ class DebaterAwardUI(BaseUI[[]]):
                     )
                 )
 
-    async def init_chat(self) -> None:
+    def reset(self) -> None:
         for dimension in self._dimension_stat.keys():
             self._dimension_stat[dimension] = False
 
@@ -165,41 +164,37 @@ class WinnerUI(BaseUI[Iterable[DimensionName] | None, Iterable[DebaterName] | No
 
                 self._sel_dimension.bind_value(self, "cur_dimension_name")
 
-    async def init_chat(self) -> None:
-        async with TaskGroup() as tg:
-            for award in self._uis_award.values():
-                tg.create_task(award.init_chat())
-            for comment in self._uis_comment.values():
-                tg.create_task(comment.init_chat())
+    def reset(self) -> None:
+        for award in self._uis_award.values():
+            award.reset()
+        for comment in self._uis_comment.values():
+            comment.reset()
 
         self.winner = None
 
-    async def start_judge(self) -> None:
+    def start_judge(self) -> None:
         self._debate_progress = 0
         self._dimensional_judge_started = False
 
-        async with TaskGroup() as tg:
-            for comment in self._uis_comment.values():
-                tg.create_task(comment.start_judge())
+        for comment in self._uis_comment.values():
+            comment.start_judge()
 
-    async def start_analysis(self, *, dimension_name: DimensionName, speech_index: int) -> None:
+    def start_analysis(self, *, dimension_name: DimensionName, speech_index: int) -> None:
         if speech_index > self._debate_progress:
             self._debate_progress = speech_index
-            await self._uis_comment[DimensionName("")].start_analysis(speech_index=speech_index)
+            self._uis_comment[DimensionName("")].start_analysis(speech_index=speech_index)
 
-        await self._uis_comment[dimension_name].start_analysis(speech_index=speech_index)
+        self._uis_comment[dimension_name].start_analysis(speech_index=speech_index)
 
-    async def start_verdict(self, *, dimension_name: DimensionName) -> None:
+    def start_verdict(self, *, dimension_name: DimensionName) -> None:
         if not self._dimensional_judge_started:
             self._dimensional_judge_started = True
-            await self._uis_comment[DimensionName("")].start_verdict(is_dimensional=True)
+            self._uis_comment[DimensionName("")].start_verdict(is_dimensional=True)
 
-        await self._uis_comment[dimension_name].start_verdict(is_dimensional=dimension_name != "")
+        self._uis_comment[dimension_name].start_verdict(is_dimensional=dimension_name != "")
 
-    async def update_verdict(self, *, dimension_name: DimensionName, verdict: Verdict) -> None:
-        await self._uis_comment[dimension_name].update_verdict(
-            comment=verdict.winner_verdict.comment
-        )
+    def update_verdict(self, *, dimension_name: DimensionName, verdict: Verdict) -> None:
+        self._uis_comment[dimension_name].update_verdict(comment=verdict.winner_verdict.comment)
 
         if dimension_name == "":
             self.winner = verdict.winner_verdict.winner

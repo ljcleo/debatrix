@@ -1,4 +1,3 @@
-from asyncio import TaskGroup
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
@@ -42,47 +41,36 @@ class SessionUI(BaseUI[Session]):
                 self._ui_verdict = VerdictUI()
                 self._ui_verdict.register_ui(None, None)
 
-    async def init_chat(self, info: DebateInfo, /) -> None:
-        async with TaskGroup() as tg:
-            tg.create_task(self._ui_arena.init_chat(info))
-            tg.create_task(self._ui_verdict.init_chat())
-            tg.create_task(self._ui_detail.init_chat(info))
+    def reset(self, *, debate_info: DebateInfo) -> None:
+        self._ui_arena.reset(debate_info=debate_info)
+        self._ui_verdict.reset()
+        self._ui_detail.reset(debate_info=debate_info)
 
-    async def pre_arena_callback(self, *, debater_name: DebaterName) -> None:
+    def pre_arena_callback(self, *, debater_name: DebaterName) -> None:
         self._speech_counter += 1
 
         if debater_name == "":
-            await self._ui_arena.end_debate()
+            self._ui_arena.end_debate()
         else:
-            await self._ui_arena.start_speech(
+            self._ui_arena.start_speech(
                 debater_name=debater_name,
                 speech_index=self._speech_counter,
                 bg_color=self._debaters_bg_color[debater_name],
             )
 
-    async def in_arena_callback(self, chunk: str) -> None:
+    def in_arena_callback(self, chunk: str) -> None:
         self._ui_arena.update_speech(chunk)
 
-    async def post_arena_query_callback(self) -> None:
-        await self._ui_arena.stop_speech()
+    def post_arena_query_callback(self) -> None:
+        self._ui_arena.stop_speech()
 
-    async def pre_panel_callback(
+    def pre_panel_callback(
         self, *args: Any, action: AllPanelActions, dimension_name: DimensionName
     ) -> None:
-        async with TaskGroup() as tg:
-            tg.create_task(
-                self._ui_verdict.pre_panel_action_callback(
-                    *args, action=action, dimension_name=dimension_name
-                )
-            )
+        self._ui_verdict.pre_panel_callback(*args, action=action, dimension_name=dimension_name)
+        self._ui_detail.pre_panel_callback(*args, action=action, dimension_name=dimension_name)
 
-            tg.create_task(
-                self._ui_detail.pre_panel_action_callback(
-                    *args, action=action, dimension_name=dimension_name
-                )
-            )
-
-    async def in_panel_callback(
+    def in_panel_callback(
         self,
         chat_chunk: tuple[str, str],
         *,
@@ -91,37 +79,20 @@ class SessionUI(BaseUI[Session]):
         append: bool,
         update_detail: bool,
     ) -> None:
-        async with TaskGroup() as tg:
-            tg.create_task(
-                self._ui_verdict.in_panel_action_callback(
-                    chat_chunk, action=action, dimension_name=dimension_name
-                )
+        self._ui_verdict.in_panel_callback(chat_chunk, action=action, dimension_name=dimension_name)
+
+        if update_detail:
+            self._ui_detail.in_panel_callback(
+                chat_chunk[1], action=action, dimension_name=dimension_name, append=append
             )
 
-            if update_detail:
-                tg.create_task(
-                    self._ui_detail.in_panel_action_callback(
-                        chat_chunk[1], append, action=action, dimension_name=dimension_name
-                    )
-                )
-
-    async def post_panel_callback(
+    def post_panel_callback(
         self, *args: Any, action: AllPanelActions, dimension_name: DimensionName
     ) -> None:
-        async with TaskGroup() as tg:
-            tg.create_task(
-                self._ui_verdict.post_panel_action_callback(
-                    *args, action=action, dimension_name=dimension_name
-                )
-            )
+        self._ui_verdict.post_panel_callback(*args, action=action, dimension_name=dimension_name)
+        self._ui_detail.post_panel_callback(*args, action=action, dimension_name=dimension_name)
 
-            tg.create_task(
-                self._ui_detail.post_panel_action_callback(
-                    *args, action=action, dimension_name=dimension_name
-                )
-            )
-
-    async def select_debate(
+    def select_debate(
         self, *, debate_info: DebateInfo | None, dimensions_name: Iterable[DimensionName]
     ) -> None:
         if debate_info is not None:
@@ -138,26 +109,24 @@ class SessionUI(BaseUI[Session]):
             self._ui_detail.refresh_ui(None, None)
             self._ui_verdict.refresh_ui(None, None)
 
-        await self._init_debate_ui(debate_info=debate_info)
+        self._init_debate_ui(debate_info=debate_info)
 
-    async def reset_debate(self, *, debate_info: DebateInfo | None) -> None:
-        await self._init_debate_ui(debate_info=debate_info)
+    def reset_debate(self, *, debate_info: DebateInfo | None) -> None:
+        self._init_debate_ui(debate_info=debate_info)
 
-    async def start_debate(self) -> None:
+    def start_debate(self) -> None:
         self._speech_counter: int = 0
-        await self._ui_verdict.start_judge()
+        self._ui_verdict.start_judge()
 
-    async def cancel_debate(self) -> None:
-        async with TaskGroup() as tg:
-            tg.create_task(self._ui_arena.cancel())
-            tg.create_task(self._ui_detail.cancel())
+    def cancel_debate(self) -> None:
+        self._ui_detail.cancel()
 
-    async def download_record(self, *, target: Path) -> None:
+    def download_record(self, *, target: Path) -> None:
         ui.notify("Debate record saved, start downloading ...", type="info")
         ui.download(target)
 
-    async def _init_debate_ui(self, *, debate_info: DebateInfo | None) -> None:
+    def _init_debate_ui(self, *, debate_info: DebateInfo | None) -> None:
         if debate_info is not None:
-            await self.init_chat(debate_info)
+            self.reset(debate_info=debate_info)
         else:
-            await self._ui_arena.reset()
+            self._ui_arena.reset()

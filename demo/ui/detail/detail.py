@@ -1,5 +1,4 @@
 import enum
-from asyncio import TaskGroup
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from typing import Any
@@ -88,14 +87,13 @@ class DetailUI(BaseUI[Iterable[DimensionName] | None, Mapping[DebaterName, str] 
                 with ui.tab_panel(str(index)):
                     self._pages[info.action].register_ui()
 
-    async def init_chat(self, debate_info: DebateInfo, /) -> None:
-        async with TaskGroup() as tg:
-            for page in self._pages.values():
-                tg.create_task(page.init_chat(debate_info))
+    def reset(self, *, debate_info: DebateInfo) -> None:
+        for page in self._pages.values():
+            page.reset(debate_info=debate_info)
 
         self._tabs.set_value("0")
 
-    async def pre_panel_action_callback(
+    def pre_panel_callback(
         self, *args: Any, action: AllPanelActions, dimension_name: DimensionName
     ) -> None:
         if action not in self._pages.keys():
@@ -109,27 +107,30 @@ class DetailUI(BaseUI[Iterable[DimensionName] | None, Mapping[DebaterName, str] 
             self._pages[action].cur_speech_index = speech.index
 
         self._action_active_counter[action] += 1
-        await self._pages[action].pre_update(action, dimension_name, debater_name)
 
-    async def in_panel_action_callback(
-        self, chunk: str, append: bool, *, action: AllPanelActions, dimension_name: DimensionName
+        self._pages[action].pre_update(
+            action=action, dimension_name=dimension_name, debater_name=debater_name
+        )
+
+    def in_panel_callback(
+        self, chunk: str, /, *, action: AllPanelActions, dimension_name: DimensionName, append: bool
     ) -> None:
         if action not in self._pages.keys():
             return
 
-        self._pages[action].update(action, dimension_name, chunk, append)
+        self._pages[action].update(
+            chunk, action=action, dimension_name=dimension_name, append=append
+        )
 
-    async def post_panel_action_callback(
+    def post_panel_callback(
         self, *_: Any, action: AllPanelActions, dimension_name: DimensionName
     ) -> None:
         if action not in self._pages.keys():
             return
 
-        await self._pages[action].post_update(action, dimension_name)
+        self._pages[action].post_update(action=action, dimension_name=dimension_name)
         self._action_active_counter[action] -= 1
 
-    async def cancel(self) -> None:
-        async with TaskGroup() as tg:
-            for action, page in self._pages.items():
-                tg.create_task(page.cancel())
-                self._action_active_counter[action] = 0
+    def cancel(self) -> None:
+        for action in self._pages:
+            self._action_active_counter[action] = 0

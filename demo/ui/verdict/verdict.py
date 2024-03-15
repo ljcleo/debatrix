@@ -1,5 +1,4 @@
 import re
-from asyncio import TaskGroup
 from collections.abc import Iterable, Mapping
 from typing import Any
 
@@ -36,36 +35,28 @@ class VerdictUI(BaseUI[Iterable[DimensionName] | None, Mapping[DebaterName, str]
                 self._ui_score = ScoreUI()
                 self._ui_score.register_ui(dimensions_name, debaters_bg_color)
 
-    async def init_chat(self) -> None:
-        async with TaskGroup() as tg:
-            tg.create_task(self._ui_winner.init_chat())
-            tg.create_task(self._ui_score.init_chat())
+    def reset(self) -> None:
+        self._ui_winner.reset()
+        self._ui_score.reset()
 
-    async def pre_panel_action_callback(
+    def pre_panel_callback(
         self, *args: Any, action: AllPanelActions, dimension_name: DimensionName
     ) -> None:
-        async with TaskGroup() as tg:
-            if action == JudgeAction.UPDATE:
-                speech: Speech = args[0]
+        if action == JudgeAction.UPDATE:
+            speech: Speech = args[0]
 
-                tg.create_task(
-                    self._ui_winner.start_analysis(
-                        dimension_name=dimension_name, speech_index=speech.index
-                    )
-                )
+            self._ui_winner.start_analysis(dimension_name=dimension_name, speech_index=speech.index)
 
-                tg.create_task(
-                    self._ui_score.start_analysis(
-                        dimension_name=dimension_name,
-                        debater_name=speech.debater_name,
-                        speech_index=speech.index,
-                    )
-                )
-            elif action in (JudgeAction.JUDGE, PanelAction.SUMMARIZE):
-                tg.create_task(self._ui_winner.start_verdict(dimension_name=dimension_name))
-                tg.create_task(self._ui_score.start_verdict(dimension_name=dimension_name))
+            self._ui_score.start_analysis(
+                dimension_name=dimension_name,
+                debater_name=speech.debater_name,
+                speech_index=speech.index,
+            )
+        elif action in (JudgeAction.JUDGE, PanelAction.SUMMARIZE):
+            self._ui_winner.start_verdict(dimension_name=dimension_name)
+            self._ui_score.start_verdict(dimension_name=dimension_name)
 
-    async def in_panel_action_callback(
+    def in_panel_callback(
         self, chat_chunk: tuple[str, str], *, action: AllPanelActions, dimension_name: DimensionName
     ) -> None:
         match: re.Match | None = re.fullmatch(r"# Temporary Score of ([^:]+): (.+)", chat_chunk[1])
@@ -77,22 +68,14 @@ class VerdictUI(BaseUI[Iterable[DimensionName] | None, Mapping[DebaterName, str]
                 score=eval(match.group(2)),
             )
 
-    async def post_panel_action_callback(
+    def post_panel_callback(
         self, *args: Any, action: AllPanelActions, dimension_name: DimensionName
     ) -> None:
-        async with TaskGroup() as tg:
-            if action in (JudgeAction.JUDGE, PanelAction.SUMMARIZE):
-                verdict: Verdict = args[0]
+        if action in (JudgeAction.JUDGE, PanelAction.SUMMARIZE):
+            verdict: Verdict = args[0]
+            self._ui_winner.update_verdict(dimension_name=dimension_name, verdict=verdict)
+            self._ui_score.update_verdict(dimension_name=dimension_name, verdict=verdict)
 
-                tg.create_task(
-                    self._ui_winner.update_verdict(dimension_name=dimension_name, verdict=verdict)
-                )
-
-                tg.create_task(
-                    self._ui_score.update_verdict(dimension_name=dimension_name, verdict=verdict)
-                )
-
-    async def start_judge(self) -> None:
-        async with TaskGroup() as tg:
-            tg.create_task(self._ui_winner.start_judge())
-            tg.create_task(self._ui_score.start_judge())
+    def start_judge(self) -> None:
+        self._ui_winner.start_judge()
+        self._ui_score.start_judge()

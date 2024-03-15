@@ -4,7 +4,7 @@ from pathlib import Path
 from socket import create_server, socket
 
 from fastapi import FastAPI
-from nicegui import ui
+from nicegui import app, ui
 from uvicorn import Config, Server
 
 from debatrix.platform import BasePlatform
@@ -20,7 +20,9 @@ class UIBasedPlatform(BasePlatform[UIBasedSession]):
 
     def __post_init__(self, resource_root: Path) -> None:
         super().__post_init__(resource_root)
+
         ui.page("/")(self._register_ui)
+        app.on_exception(lambda x: ui.notify(f"Internal Error: {repr(x)}", type="negative"))
 
         gui_app = FastAPI(debug=self.fast_api_debug)
         ui.run_with(gui_app, title="Debatrix Demo", favicon="♎", dark=None, storage_secret="COYG!")

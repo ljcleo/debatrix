@@ -1,13 +1,58 @@
-from asyncio import Lock, Queue, Task, create_task, sleep
-from collections.abc import AsyncIterable, AsyncIterator, Iterable
+from collections.abc import AsyncIterable, Iterable
 from types import EllipsisType
 from typing import Literal
+from uuid import uuid4
 
 from nicegui import ui
 
-from debatrix.util import sanitize, tokenize
+from debatrix.util import sanitize
 
 from .util import get_avatar_url, prettify_json
+
+
+class ChatMessage:
+    def __init__(self, message_ui: ui.chat_message, /, *, render_markdown: bool = True) -> None:
+        self._ui = message_ui
+        self._render_markdown = render_markdown
+        self._contents: list[str] = []
+        self._update_last(split=True)
+
+    def append(self, chunk: str | EllipsisType, /) -> None:
+        if chunk is ...:
+            if len(self._contents) > 0:
+                self._update_last()
+                self._update_last(split=True)
+
+            self._contents.append("")
+        else:
+            if len(self._contents) == 0:
+                self._contents.append("")
+
+            self._contents[-1] += chunk
+            self._update_last()
+
+    def cut(self) -> list[str]:
+        if len(self._contents) > 0:
+            self._update_last()
+        else:
+            self._ui.remove(self._last_element)
+
+        return self._contents
+
+    def _update_last(self, *, split: bool = False) -> None:
+        if split:
+            with self._ui:
+                self._last_element = ui.spinner("dots", size="xl", color="black")
+        else:
+            self._ui.remove(self._last_element)
+            content: str = prettify_json(self._contents[-1])
+
+            with self._ui:
+                self._last_element = (
+                    ui.markdown(content=content)
+                    if self._render_markdown
+                    else ui.code(content=content, language="markdown")
+                ).classes("w-full overflow-x-auto")
 
 
 class ChatBox:
@@ -16,7 +61,7 @@ class ChatBox:
     def __init__(
         self, *, title: tuple[str, str | None] | None = None, extra_classes: str | None = None
     ) -> None:
-        self._lock = Lock()
+        self._messages: dict[str, ChatMessage] = {}
 
         classes: str = "w-full h-full"
         if extra_classes is not None:
@@ -37,59 +82,36 @@ class ChatBox:
             ).classes("w-full h-auto grow") as self._scroll:
                 self._column: ui.column = ui.column().classes("w-full items-stretch")
 
-    @property
-    def card(self) -> ui.card:
-        return self._card
+    def set_visibility(self, visible: bool, /) -> None:
+        self._card.set_visibility(visible)
 
-    @property
-    def scroll(self) -> ui.scroll_area:
-        return self._scroll
+    def reset(self, *, preload: Iterable[str] | None = None) -> None:
+        self._messages.clear()
+        self._column.clear()
 
-    @property
-    def column(self) -> ui.column:
-        return self._column
+        if preload is not None:
+            self.insert(preload, stamp="Preload info")
 
-    async def reset(self) -> None:
-        async with self._lock:
-            self.column.clear()
-
-    async def insert(
+    def insert(
         self,
         messages: Iterable[str],
         *,
         source: str | None = None,
         stamp: str | None = None,
         bg_color: str | None = None,
-        iter_sleep: float | None = None,
-        render_streaming: bool = True,
         render_markdown: bool = True,
     ) -> list[str]:
-        async def stream_messages(messages: Iterable[str]) -> AsyncIterator[str | EllipsisType]:
-            started: bool = False
-
-            for message in messages:
-                if started:
-                    yield ...
-
-                started = True
-
-                if iter_sleep is None:
-                    yield message
-                else:
-                    for token in tokenize(message):
-                        if iter_sleep is not None and iter_sleep > 0:
-                            await sleep(iter_sleep)
-
-                        yield token
-
-        return await self.insert_stream(
-            stream_messages(messages),
-            source=source,
-            stamp=stamp,
-            bg_color=bg_color,
-            render_streaming=render_streaming,
-            render_markdown=render_markdown,
+        uuid: str = self.assign_message(
+            source=source, stamp=stamp, bg_color=bg_color, render_markdown=render_markdown
         )
+
+        for i, chunk in enumerate(messages):
+            if i > 0:
+                self.append_to_message(uuid, chunk=...)
+
+            self.append_to_message(uuid, chunk=chunk)
+
+        return self.cut_message(uuid)
 
     async def insert_stream(
         self,
@@ -98,139 +120,46 @@ class ChatBox:
         source: str | None = None,
         stamp: str | None = None,
         bg_color: str | None = None,
-        render_streaming: bool = True,
         render_markdown: bool = True,
     ) -> list[str]:
-        name: str = sanitize(source, self.SYSTEM_NAME)
+        uuid: str = self.assign_message(
+            source=source, stamp=stamp, bg_color=bg_color, render_markdown=render_markdown
+        )
 
-        async with self._lock:
-            contents: list[str] = []
-            avatar: str = get_avatar_url(name)
+        async for chunk in stream:
+            self.append_to_message(uuid, chunk=chunk)
 
-            def make_element(content: str | None, /) -> ui.element:
-                if content is None:
-                    return ui.spinner("dots", size="xl", color="black")
-                else:
-                    content = prettify_json(content)
+        return self.cut_message(uuid)
 
-                    if render_markdown:
-                        return ui.markdown(content=content).classes("w-full overflow-x-auto")
-                    else:
-                        return ui.code(content=content, language="markdown").classes(
-                            "w-full overflow-x-auto"
-                        )
-
-            with self.column, ui.chat_message(
-                name=name, stamp=stamp, avatar=avatar, sent=source is None
-            ).props('size="10"') as chat:
-                last_block: ui.element = make_element(None)
-
-            self.scroll.scroll_to(percent=1)
-            if bg_color is not None:
-                chat.props(f'bg-color="{bg_color}"')
-
-            async for chunk in stream:
-                if chunk is ...:
-                    if len(contents) > 0:
-                        chat.remove(last_block)
-
-                        with chat:
-                            make_element(contents[-1])
-                            last_block = make_element(None)
-
-                        self.scroll.scroll_to(percent=1)
-
-                    contents.append("")
-                else:
-                    if len(contents) == 0:
-                        contents.append("")
-
-                    contents[-1] += chunk
-
-                    if render_streaming:
-                        chat.remove(last_block)
-                        with chat:
-                            last_block = make_element(contents[-1])
-
-                        self.scroll.scroll_to(percent=1)
-
-            chat.remove(last_block)
-
-            if len(contents) > 0:
-                with chat:
-                    make_element(contents[-1])
-
-            return contents
-
-
-class DelayedChatBox(ChatBox):
-    def __init__(
-        self, *, title: tuple[str, str | None] | None = None, extra_classes: str | None = None
-    ) -> None:
-        super().__init__(title=title, extra_classes=extra_classes)
-        self._task: Task[Iterable[str]] | None = None
-
-    async def reset(self, preload: Iterable[str] | None = None) -> None:
-        if self._task is not None:
-            await self.cancel()
-
-        await super().reset()
-        if preload is not None:
-            await self.insert(preload, stamp="Preload info", render_streaming=False)
-
-    async def start(
+    def assign_message(
         self,
         *,
         source: str | None = None,
         stamp: str | None = None,
         bg_color: str | None = None,
-        render_streaming: bool = True,
         render_markdown: bool = True,
-    ) -> bool:
-        if self._task is not None:
-            return False
+    ) -> str:
+        uuid: str = uuid4().hex
+        name: str = sanitize(source, self.SYSTEM_NAME)
+        avatar: str = get_avatar_url(name)
 
-        self._cache: Queue[str | EllipsisType | None] = Queue()
+        with self._column, ui.chat_message(
+            name=name, stamp=stamp, avatar=avatar, sent=source is None
+        ).props('size="10"') as chat:
+            if bg_color is not None:
+                chat.props(f'bg-color="{bg_color}"')
 
-        async def get_messages() -> AsyncIterator[str | EllipsisType]:
-            while True:
-                messages: str | EllipsisType | None = await self._cache.get()
-                if messages is None:
-                    return
+            self._messages[uuid] = ChatMessage(chat, render_markdown=render_markdown)
 
-                yield messages
+        self._to_bottom()
+        return uuid
 
-        self._task = create_task(
-            self.insert_stream(
-                get_messages(),
-                source=source,
-                stamp=stamp,
-                bg_color=bg_color,
-                render_streaming=render_streaming,
-                render_markdown=render_markdown,
-            )
-        )
+    def append_to_message(self, uuid: str, /, *, chunk: str | EllipsisType) -> None:
+        self._messages[uuid].append(chunk)
+        self._to_bottom()
 
-        return True
+    def cut_message(self, uuid: str, /) -> list[str]:
+        return self._messages[uuid].cut()
 
-    def update(self, chunk: str | EllipsisType, /) -> bool:
-        if self._task is None:
-            return False
-
-        self._cache.put_nowait(chunk)
-        return True
-
-    async def stop(self) -> bool:
-        if self._task is None:
-            return False
-
-        self._cache.put_nowait(None)
-        await self._task
-        self._task = None
-        return True
-
-    async def cancel(self) -> None:
-        if self._task is not None:
-            self._task.cancel()
-            await sleep(0)
-            self._task = None
+    def _to_bottom(self) -> None:
+        self._scroll.scroll_to(percent=1)

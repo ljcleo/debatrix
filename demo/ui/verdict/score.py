@@ -1,4 +1,3 @@
-from asyncio import TaskGroup
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from typing import Any
@@ -92,7 +91,7 @@ class DebaterScoreUI(BaseUI[[]]):
                 on_point_click=self._hdl_crt_score,
             ).classes("w-full")
 
-    async def init_chat(self) -> None:
+    def reset(self) -> None:
         self._reset_score()
         self.update_crt_score()
 
@@ -216,71 +215,60 @@ class ScoreUI(BaseUI[Iterable[DimensionName] | None, Mapping[DebaterName, str] |
                 self._sel_debater.bind_value(self, "cur_debater_name")
                 self._sel_dimension.bind_value(self, "cur_dimension_name")
 
-    async def init_chat(self) -> None:
-        async with TaskGroup() as tg:
-            for score in self._uis_score.values():
-                tg.create_task(score.init_chat())
-            for comment in self._uis_comment.values():
-                tg.create_task(comment.init_chat())
+    def reset(self) -> None:
+        for score in self._uis_score.values():
+            score.reset()
+        for comment in self._uis_comment.values():
+            comment.reset()
 
-    async def start_judge(self) -> None:
+    def start_judge(self) -> None:
         for debater in self._debate_progress:
             self._debate_progress[debater] = 0
 
         self._dimensional_judge_started = False
+        for comment in self._uis_comment.values():
+            comment.start_judge()
 
-        async with TaskGroup() as tg:
-            for comment in self._uis_comment.values():
-                tg.create_task(comment.start_judge())
-
-    async def start_analysis(
+    def start_analysis(
         self, *, dimension_name: DimensionName, debater_name: DebaterName, speech_index: int
     ) -> None:
         if speech_index > self._debate_progress[debater_name]:
             self._debate_progress[debater_name] = speech_index
 
-            await self._uis_comment[DimensionName(""), debater_name].start_analysis(
+            self._uis_comment[DimensionName(""), debater_name].start_analysis(
                 speech_index=speech_index
             )
 
-        await self._uis_comment[dimension_name, debater_name].start_analysis(
-            speech_index=speech_index
-        )
+        self._uis_comment[dimension_name, debater_name].start_analysis(speech_index=speech_index)
 
     def update_analysis(
         self, *, dimension_name: DimensionName, debater_name: DebaterName, score: int
     ) -> None:
         self._uis_score[debater_name].update_comment(dimension_name=dimension_name, score=score)
 
-    async def start_verdict(self, *, dimension_name: DimensionName) -> None:
+    def start_verdict(self, *, dimension_name: DimensionName) -> None:
         if not self._dimensional_judge_started:
             self._dimensional_judge_started = True
 
-            async with TaskGroup() as tg:
-                for key, comment in self._uis_comment.items():
-                    if key[0] == "":
-                        tg.create_task(comment.start_verdict(is_dimensional=True))
+            for key, comment in self._uis_comment.items():
+                if key[0] == "":
+                    comment.start_verdict(is_dimensional=True)
 
         is_dimensional: bool = dimension_name != ""
 
-        async with TaskGroup() as tg:
-            for key, comment in self._uis_comment.items():
-                if key[0] == dimension_name:
-                    tg.create_task(comment.start_verdict(is_dimensional=is_dimensional))
+        for key, comment in self._uis_comment.items():
+            if key[0] == dimension_name:
+                comment.start_verdict(is_dimensional=is_dimensional)
 
-    async def update_verdict(self, *, dimension_name: DimensionName, verdict: Verdict) -> None:
+    def update_verdict(self, *, dimension_name: DimensionName, verdict: Verdict) -> None:
         for comment in verdict.debaters_verdict:
             self._uis_score[comment.debater_name].update_comment(
                 dimension_name=dimension_name, score=comment.score
             )
 
-        async with TaskGroup() as tg:
-            for comment in verdict.debaters_verdict:
-                tg.create_task(
-                    self._uis_comment[dimension_name, comment.debater_name].update_verdict(
-                        comment=comment.comment
-                    )
-                )
+            self._uis_comment[dimension_name, comment.debater_name].update_verdict(
+                comment=comment.comment
+            )
 
     def _switch_chatbox(self) -> None:
         for key, comment in self._uis_comment.items():

@@ -1,5 +1,4 @@
 from abc import abstractmethod
-from asyncio import TaskGroup
 from collections.abc import Iterable, Mapping
 from dataclasses import InitVar, dataclass
 
@@ -9,7 +8,7 @@ from debatrix.core.action import AllPanelActions
 from debatrix.core.common import DebateInfo, DebaterName, DimensionName
 
 from ..base import BaseUI
-from ..chatbox import DelayedChatBox
+from ..chatbox import ChatBox
 from ..util import format_info
 
 
@@ -20,7 +19,8 @@ class PageUI(BaseUI[[]]):
 
     def __post_init__(self) -> None:
         super().__init__()
-        self._blocks: dict[str, DelayedChatBox] = {}
+        self._blocks: dict[str, ChatBox] = {}
+        self._uuids: dict[tuple[AllPanelActions, DimensionName], str] = {}
 
     @property
     def cur_speech_index(self) -> int:
@@ -30,62 +30,64 @@ class PageUI(BaseUI[[]]):
     def cur_speech_index(self, index: int) -> None:
         self._cur_speech_index = index
 
-    async def init_chat(self, debate_info: DebateInfo, /) -> None:
+    def reset(self, *, debate_info: DebateInfo) -> None:
         self.cur_speech_index = 0
-
-        async with TaskGroup() as tg:
-            for block in self._blocks.values():
-                tg.create_task(block.reset(preload=format_info(debate_info, with_info_slide=False)))
+        for block in self._blocks.values():
+            block.reset(preload=format_info(debate_info, with_info_slide=False))
 
     def add_block(
         self,
         key: str,
+        /,
+        *,
         title: tuple[str, str | None] | None = None,
         extra_classes: str | None = None,
     ) -> None:
-        self._blocks[key] = DelayedChatBox(title=title, extra_classes=extra_classes)
+        self._blocks[key] = ChatBox(title=title, extra_classes=extra_classes)
 
-    async def pre_update(
-        self, action: AllPanelActions, dimension_name: DimensionName, debater_name: DebaterName
+    def pre_update(
+        self, *, action: AllPanelActions, dimension_name: DimensionName, debater_name: DebaterName
     ) -> None:
-        await self._blocks[self.get_block_key(action, dimension_name)].start(
+        self._uuids[action, dimension_name] = self._get_block(
+            action, dimension_name
+        ).assign_message(
             source=self._get_display_name(dimension_name, debater_name),
             stamp=self.get_stamp(action, dimension_name, debater_name),
             bg_color=self._get_bg_color(debater_name),
-            render_streaming=self.render_streaming,
         )
 
     def update(
-        self, action: AllPanelActions, dimension_name: DimensionName, chunk: str, append: bool
+        self, chunk: str, /, *, action: AllPanelActions, dimension_name: DimensionName, append: bool
     ) -> None:
-        chatbox: DelayedChatBox = self._blocks[self.get_block_key(action, dimension_name)]
+        chatbox: ChatBox = self._get_block(action, dimension_name)
+        uuid: str = self._uuids[action, dimension_name]
+
         if not append:
-            chatbox.update(...)
+            chatbox.append_to_message(uuid, chunk=...)
 
-        chatbox.update(chunk)
+        chatbox.append_to_message(uuid, chunk=chunk)
 
-    async def post_update(self, action: AllPanelActions, dimension_name: DimensionName) -> None:
-        await self._blocks[self.get_block_key(action, dimension_name)].stop()
-
-    async def cancel(self) -> None:
-        async with TaskGroup() as tg:
-            for block in self._blocks.values():
-                tg.create_task(block.cancel())
+    def post_update(self, *, action: AllPanelActions, dimension_name: DimensionName) -> None:
+        self._get_block(action, dimension_name).cut_message(self._uuids[action, dimension_name])
+        del self._uuids[action, dimension_name]
 
     @abstractmethod
-    def get_block_key(self, action: AllPanelActions, dimension_name: DimensionName) -> str:
+    def get_block_key(self, action: AllPanelActions, dimension_name: DimensionName, /) -> str:
         raise NotImplementedError()
 
     @abstractmethod
     def get_stamp(
-        self, action: AllPanelActions, dimension_name: DimensionName, debater_name: DebaterName
+        self, action: AllPanelActions, dimension_name: DimensionName, debater_name: DebaterName, /
     ) -> str | None:
         raise NotImplementedError()
 
-    def _get_bg_color(self, debater_name: DebaterName) -> str | None:
+    def _get_block(self, action: AllPanelActions, dimension_name: DimensionName, /) -> ChatBox:
+        return self._blocks[self.get_block_key(action, dimension_name)]
+
+    def _get_bg_color(self, debater_name: DebaterName, /) -> str | None:
         return self.debaters_bg_color.get(debater_name)
 
-    def _get_display_name(self, dimension_name: DimensionName, debater_name: DebaterName) -> str:
+    def _get_display_name(self, dimension_name: DimensionName, debater_name: DebaterName, /) -> str:
         name: str = "AI"
         suffix: str = dimension_name.capitalize()
 
@@ -119,11 +121,11 @@ class DimensionalPageUI(PageUI):
                     extra_classes=f"col-span-{n_col} md:col-span-{max(n_dim, 2)} 2xl:col-span-2",
                 )
 
-    def get_block_key(self, action: AllPanelActions, dimension_name: DimensionName) -> str:
+    def get_block_key(self, action: AllPanelActions, dimension_name: DimensionName, /) -> str:
         return dimension_name
 
     def get_stamp(
-        self, action: AllPanelActions, dimension_name: DimensionName, debater_name: DebaterName
+        self, action: AllPanelActions, dimension_name: DimensionName, debater_name: DebaterName, /
     ) -> str | None:
         return "After debate" if self.is_final else f"After speech {self.cur_speech_index}"
 
@@ -133,10 +135,10 @@ class MergedPageUI(PageUI):
         with ui.grid(columns=1).classes("w-full h-full min-h-[64rem] md:min-h-[40rem]"):
             self.add_block("main", extra_classes="col-span-2 md:col-span-1")
 
-    def get_block_key(self, action: AllPanelActions, dimension_name: DimensionName) -> str:
+    def get_block_key(self, action: AllPanelActions, dimension_name: DimensionName, /) -> str:
         return "main"
 
     def get_stamp(
-        self, action: AllPanelActions, dimension_name: DimensionName, debater_name: DebaterName
+        self, action: AllPanelActions, dimension_name: DimensionName, debater_name: DebaterName, /
     ) -> str | None:
         return "After debate"
