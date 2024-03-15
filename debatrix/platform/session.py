@@ -253,7 +253,8 @@ class Session:
                     tg.create_task(self._all_arena_callback_done.wait())
                     tg.create_task(self._all_panel_callback_done.wait())
 
-                result = self._running_debate.result()
+                if self._running_debate is not None:
+                    result = self._running_debate.result()
             except CancelledError:
                 pass
 

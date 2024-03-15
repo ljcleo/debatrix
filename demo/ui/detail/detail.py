@@ -91,6 +91,7 @@ class DetailUI(BaseUI[Iterable[DimensionName] | None, Mapping[DebaterName, str] 
         for page in self._pages.values():
             page.reset(debate_info=debate_info)
 
+        self.cancel()
         self._tabs.set_value("0")
 
     def pre_panel_callback(

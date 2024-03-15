@@ -10,7 +10,6 @@ from tenacity import (
     retry_unless_exception_type,
     stop_after_attempt,
     wait_random,
-    wait_random_exponential,
     before_sleep_log,
 )
 
@@ -61,7 +60,7 @@ class APIClient:
         try:
             async for attempt in AsyncRetrying(
                 stop=stop_after_attempt(max_retries),
-                wait=wait_random_exponential(multiplier=4, max=60),
+                wait=wait_random(),
                 before_sleep=before_sleep_log(self._logger, log_level=WARNING, exc_info=True),
             ):
                 with attempt:
@@ -75,7 +74,7 @@ class APIClient:
 
             async for attempt in AsyncRetrying(
                 stop=stop_after_attempt(max_retries),
-                wait=wait_random_exponential(multiplier=4, max=60),
+                wait=wait_random(),
                 before_sleep=before_sleep_log(self._logger, log_level=WARNING, exc_info=True),
             ):
                 with attempt:
@@ -88,12 +87,12 @@ class APIClient:
 
             async for attempt in AsyncRetrying(
                 stop=stop_after_attempt(max_retries),
-                wait=wait_random_exponential(multiplier=4, max=60),
+                wait=wait_random(),
                 before_sleep=before_sleep_log(self._logger, log_level=WARNING, exc_info=True),
             ):
                 with attempt:
                     async for inner_attempt in AsyncRetrying(
-                        wait=wait_random(min=3, max=5), retry=retry_unless_exception_type()
+                        wait=wait_random(), retry=retry_unless_exception_type()
                     ):
                         with inner_attempt:
                             async with self._request(
@@ -115,7 +114,7 @@ class APIClient:
             try:
                 async for attempt in AsyncRetrying(
                     stop=stop_after_attempt(max_retries),
-                    wait=wait_random_exponential(multiplier=4, max=60),
+                    wait=wait_random(),
                     before_sleep=before_sleep_log(self._logger, log_level=WARNING, exc_info=True),
                 ):
                     with attempt:
@@ -129,6 +128,8 @@ class APIClient:
                         self._parse(text, bool)
             except CancelledError:
                 pass
+
+            raise
 
     @asynccontextmanager
     async def _request(

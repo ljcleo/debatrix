@@ -44,7 +44,7 @@ class OpenAIChatModel(ChatModelABC):
 
         async with self._semaphore:
             async for attempt in AsyncRetrying(
-                stop=stop_after_attempt(10),
+                stop=stop_after_attempt(3),
                 wait=wait_random_exponential(min=4, max=60),
                 retry=retry_if_not_exception_type((RuntimeError, BadRequestError)),
                 before_sleep=before_sleep_log(self._logger, log_level=WARNING, exc_info=True),
