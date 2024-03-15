@@ -10,6 +10,7 @@ P = ParamSpec("P")
 @dataclass(frozen=True, kw_only=True)
 class APIResponse(Generic[T]):
     finished: bool
+    cancelled: bool
     error: str | None
     result: T | None
 

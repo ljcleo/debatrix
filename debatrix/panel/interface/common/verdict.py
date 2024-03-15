@@ -106,8 +106,8 @@ class VerdictExtractor:
     ) -> T:
         return await parser.parse(
             (
-                await model.predict_direct(
-                    make_single_chat(
+                await model.chat_predict(
+                    messages=make_single_chat(
                         f"{template}\n\n{parser.make_schema_prompt(output_type)}", **kwargs
                     )
                 )

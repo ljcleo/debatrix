@@ -31,17 +31,18 @@ class CallbackArranger:
         self._halt.set()
 
     async def _serve(self) -> None:
-        async with TaskGroup() as tg:
-            poll_task: Task[None] = tg.create_task(self._poll())
-            await self._halt.wait()
-            poll_task.cancel()
-
-        for queue in self._queues.values():
-            while not queue.empty():
-                queue.get_nowait()[0].close()
+        try:
+            async with TaskGroup() as tg:
+                poll_task: Task[None] = tg.create_task(self._poll())
+                await self._halt.wait()
+                poll_task.cancel()
+        finally:
+            for queue in self._queues.values():
+                while not queue.empty():
+                    queue.get_nowait()[0].close()
 
     async def _poll(self) -> None:
-        stage = CallbackStage.PRE
+        stage: CallbackStage = CallbackStage.PRE
 
         while True:
             coroutine: Coroutine[Any, Any, None]
@@ -55,16 +56,20 @@ class CallbackArranger:
 
 class CallbackArrangerManager(Generic[T]):
     def __init__(self) -> None:
-        self._arrangers: dict[T, CallbackArranger] = {}
+        self._arrangers: dict[str, dict[T, CallbackArranger]] = {}
 
-    def reset(self) -> None:
-        for arranger in self._arrangers.values():
+    def create(self, session_id: str, /) -> None:
+        self._arrangers[session_id] = {}
+
+    def reset(self, session_id: str, /) -> None:
+        for arranger in self._arrangers[session_id].values():
             arranger.halt()
 
-        self._arrangers.clear()
+        self._arrangers[session_id].clear()
 
     def put(
         self,
+        session_id: str,
         coroutine: Coroutine[Any, Any, None],
         /,
         *,
@@ -72,11 +77,15 @@ class CallbackArrangerManager(Generic[T]):
         key: T,
         proceed: bool = True,
     ) -> None:
-        if key not in self._arrangers:
-            self._arrangers[key] = CallbackArranger(self._tg)
+        if key not in self._arrangers[session_id]:
+            self._arrangers[session_id][key] = CallbackArranger(self._tg)
 
-        self._arrangers[key].put(coroutine, stage=stage, proceed=proceed)
+        self._arrangers[session_id][key].put(coroutine, stage=stage, proceed=proceed)
 
     async def serve(self) -> None:
-        async with TaskGroup() as self._tg:
-            self._tg.create_task(Event().wait())
+        try:
+            async with TaskGroup() as self._tg:
+                self._tg.create_task(Event().wait())
+        finally:
+            for session_id in self._arrangers:
+                self.reset(session_id)

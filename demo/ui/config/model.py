@@ -58,11 +58,6 @@ class ModelConfigUI(BaseUI[dict[str, Any]]):
                         placeholder="https://api.openai.com/v1",
                     ).classes("w-full").bind_value(openai_chat_config, target_name="base_url")
 
-                    ui.input(
-                        label="Proxy (Optional)",
-                        placeholder="http://example.com:1234",
-                    ).classes("w-full").bind_value(openai_chat_config, target_name="proxy")
-
         with ui.grid(columns=1).classes("w-full"):
             with ui.card().classes("w-full"):
                 ui.label(text="Embedding Model").classes("text-lg")
@@ -97,8 +92,3 @@ class ModelConfigUI(BaseUI[dict[str, Any]]):
                         label="API Base URL (Optional)",
                         placeholder="https://api.openai.com/v1",
                     ).classes("w-full").bind_value(openai_embed_config, target_name="base_url")
-
-                    ui.input(
-                        label="Proxy (Optional)",
-                        placeholder="http://example.com:1234",
-                    ).classes("w-full").bind_value(openai_embed_config, target_name="proxy")

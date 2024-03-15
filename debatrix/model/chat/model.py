@@ -1,5 +1,3 @@
-from collections.abc import AsyncIterator
-
 from ..common import ChatHistory, ChatMessage
 from .base import ChatModelABC
 from .config import ChatModelBackend, ChatModelConfig
@@ -25,12 +23,8 @@ class ChatModel(ChatModelABC):
     async def close(self) -> None:
         await self._openai_model.close()
 
-    async def predict(self, messages: ChatHistory) -> AsyncIterator[ChatMessage]:
-        async for chunk in self._get_model().predict(messages):
-            yield chunk
-
-    async def predict_direct(self, messages: ChatHistory) -> ChatMessage:
-        return await self._get_model().predict_direct(messages)
+    async def predict(self, *, messages: ChatHistory) -> ChatMessage:
+        return await self._get_model().predict(messages=messages)
 
     def _get_model(self, backend: ChatModelBackend | None = None, /) -> ChatModelABC:
         if backend is None:

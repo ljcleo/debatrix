@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import InitVar, dataclass
 from typing import Any
 
 from ...api import ServerInfo
@@ -28,11 +28,12 @@ class Debater(HasInterfaceObject, BaseDebater):
 
 @dataclass(kw_only=True)
 class Arena(HasInterfaceObject, BaseArena[Debater]):
+    session_id: InitVar[str]
     pre_query_callback: TaskCallback | None = None
     post_query_callback: TaskCallback | None = None
 
-    def __post_init__(self):
-        self._interface = ArenaInterfaceClient()
+    def __post_init__(self, session_id: str):
+        self._interface = ArenaInterfaceClient(session_id=session_id)
 
     @property
     def interface(self) -> ArenaInterfaceClient:

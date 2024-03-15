@@ -1,3 +1,4 @@
-from .base import Platform
+from .platform import BasePlatform, Platform
+from .session import Session
 
-__all__ = ["Platform"]
+__all__ = ["Session", "BasePlatform", "Platform"]

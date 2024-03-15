@@ -21,23 +21,21 @@ class SessionData(Generic[T]):
     is_started: bool = False
 
     response: APIResponse[T] = Field(
-        default_factory=lambda: APIResponse(finished=False, error=None, result=None)
+        default_factory=lambda: APIResponse(
+            finished=False, cancelled=False, error=None, result=None
+        )
     )
 
 
 class SessionCache(Generic[P, T]):
     def __init__(
-        self,
-        *,
-        func: Callable[P, Coroutine[Any, Any, T]],
-        max_size: int = 100000,
-        task_pool: set[Task[Any]],
+        self, *, func: Callable[P, Coroutine[Any, Any, T]], max_size: int = 100000
     ) -> None:
         self._func = func
         self._max_size = max_size
-        self._task_pool = task_pool
 
         self._cache: dict[str, SessionData[T]] = {}
+        self._task_pool: dict[str, Task[Any]] = {}
         self._queue: Queue[str] = Queue()
 
     def __getitem__(self, key: str, /) -> SessionData[T]:
@@ -52,29 +50,49 @@ class SessionCache(Generic[P, T]):
                 try:
                     async with TaskGroup() as tg:
                         task: Task[T] = tg.create_task(self._func(*args, **kwargs))
-                        self._task_pool.add(task)
-                        task.add_done_callback(self._task_pool.discard)
+                        self._task_pool[key] = task
 
                     self[key].response = APIResponse(
-                        finished=True, error=None, result=task.result()
+                        finished=True, cancelled=False, error=None, result=task.result()
                     )
                 except CancelledError as e:
                     self[key].response = APIResponse(
-                        finished=True, error=prettify_exception(e), result=None
+                        finished=True, cancelled=True, error=prettify_exception(e), result=None
                     )
 
             except Exception as e:
                 print(prettify_exception(e))
 
                 self[key].response = APIResponse(
-                    finished=True, error=prettify_exception(e), result=None
+                    finished=True, cancelled=False, error=prettify_exception(e), result=None
                 )
+
+            if key in self._task_pool:
+                del self._task_pool[key]
 
         self._cache[key] = SessionData(bg_func=bg_func)
         return key
 
+    async def cancel(self, key: str, /) -> bool:
+        if key in self._task_pool and not self._task_pool[key].done():
+            self._task_pool[key].cancel()
+
+            try:
+                await self._task_pool[key]
+            except CancelledError:
+                pass
+
+            return False
+        else:
+            return True
+
     def _generate_key(self) -> str:
         while len(self._cache) > self._max_size:
-            del self._cache[self._queue.get_nowait()]
+            old_key: str = self._queue.get_nowait()
+
+            if old_key in self._cache:
+                del self._cache[old_key]
+            if old_key in self._task_pool:
+                del self._task_pool[old_key]
 
         return uuid4().hex

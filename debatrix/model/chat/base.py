@@ -6,10 +6,10 @@ from ..common import ChatHistory, ChatMessage
 
 class ChatModelABC(ABC):
     @abstractmethod
-    async def predict(self, messages: ChatHistory) -> AsyncIterator[ChatMessage]:
+    async def predict(self, *, messages: ChatHistory) -> AsyncIterator[ChatMessage]:
         raise NotImplementedError()
         yield
 
     @abstractmethod
-    async def predict_direct(self, messages: ChatHistory) -> ChatMessage:
+    async def predict(self, *, messages: ChatHistory) -> ChatMessage:
         raise NotImplementedError()

@@ -1,28 +1,48 @@
 from ..process import ProcessHub
 from ..resource import ResourceHub
+from ..record import RecorderHub
 from .classes import (
     ArenaInterfaceConfigBuffer,
-    DimensionInfoBuffer,
+    ManagerConfigBuffer,
     ModelConfigBuffer,
     PanelInterfaceConfigBuffer,
-    PlatformConfigBuffer,
+    RecorderConfigBuffer,
 )
 
 
 class ConfigBufferHub:
-    def __init__(self, resource_hub: ResourceHub, process_hub: ProcessHub) -> None:
-        self._model = ModelConfigBuffer(resource_hub.model_config, process_hub.model)
+    def __init__(
+        self,
+        resource_hub: ResourceHub,
+        process_hub: ProcessHub,
+        recorder_hub: RecorderHub,
+        /,
+        *,
+        dump_after_update: bool = False,
+    ) -> None:
+        self._model = ModelConfigBuffer(
+            resource_hub.model_config, process_hub.model, dump_after_update=dump_after_update
+        )
 
         self._arena_interface = ArenaInterfaceConfigBuffer(
-            resource_hub.arena_interface_config, process_hub.arena_interface
+            resource_hub.arena_interface_config,
+            process_hub.arena_interface,
+            dump_after_update=dump_after_update,
         )
 
         self._panel_interface = PanelInterfaceConfigBuffer(
-            resource_hub.panel_interface_config, process_hub.panel_interface
+            resource_hub.panel_interface_config,
+            process_hub.panel_interface,
+            dump_after_update=dump_after_update,
         )
 
-        self._manager = DimensionInfoBuffer(resource_hub.dimension, process_hub.manager)
-        self._platform = PlatformConfigBuffer(resource_hub.platform)
+        self._manager = ManagerConfigBuffer(
+            resource_hub.manager_config, process_hub.manager, dump_after_update=dump_after_update
+        )
+
+        self._recorder = RecorderConfigBuffer(
+            resource_hub.recorder_config, recorder_hub, dump_after_update=dump_after_update
+        )
 
     @property
     def model(self) -> ModelConfigBuffer:
@@ -37,9 +57,9 @@ class ConfigBufferHub:
         return self._panel_interface
 
     @property
-    def manager(self) -> DimensionInfoBuffer:
+    def manager(self) -> ManagerConfigBuffer:
         return self._manager
 
     @property
-    def platform(self) -> PlatformConfigBuffer:
-        return self._platform
+    def recorder(self) -> RecorderConfigBuffer:
+        return self._recorder

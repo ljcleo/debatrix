@@ -1,13 +1,13 @@
 from .arena import ArenaInterfaceConfigBuffer
-from .dimension import DimensionInfoBuffer
+from .manager import ManagerConfigBuffer
 from .model import ModelConfigBuffer
 from .panel import PanelInterfaceConfigBuffer
-from .platform import PlatformConfigBuffer
+from .recorder import RecorderConfigBuffer
 
 __all__ = [
     "ModelConfigBuffer",
     "ArenaInterfaceConfigBuffer",
     "PanelInterfaceConfigBuffer",
-    "DimensionInfoBuffer",
-    "PlatformConfigBuffer",
+    "ManagerConfigBuffer",
+    "RecorderConfigBuffer",
 ]

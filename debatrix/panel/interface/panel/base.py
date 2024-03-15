@@ -9,9 +9,9 @@ class PanelInterfaceABC(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    async def reset(self, debate_info: DebateInfo) -> None:
+    async def reset(self, *, debate_info: DebateInfo) -> None:
         raise NotImplementedError()
 
     @abstractmethod
-    async def summarize(self, verdicts: list[DimensionalVerdict]) -> Verdict:
+    async def summarize(self, *, verdicts: list[DimensionalVerdict]) -> Verdict:
         raise NotImplementedError()

@@ -1,10 +1,10 @@
 from .arena import ArenaInterfaceConfigHub
-from .dimension import DimensionInfoHub
+from .manager import ManagerConfigHub
 from .model import ModelConfigHub
 from .motion import MotionHub
 from .panel import PanelInterfaceConfigHub
-from .platform import PlatformConfigHub
-from .record import DebateRecordHub
+from .record import RecordHub
+from .recorder import RecorderConfigHub
 from .speech import SpeechHub
 
 __all__ = [
@@ -13,7 +13,7 @@ __all__ = [
     "ModelConfigHub",
     "ArenaInterfaceConfigHub",
     "PanelInterfaceConfigHub",
-    "DimensionInfoHub",
-    "PlatformConfigHub",
-    "DebateRecordHub",
+    "ManagerConfigHub",
+    "RecorderConfigHub",
+    "RecordHub",
 ]

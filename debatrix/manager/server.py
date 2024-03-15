@@ -1,58 +1,75 @@
-from collections.abc import Iterable
-from typing import Annotated
-
-from fastapi import Body
+from asyncio import TaskGroup
+from functools import partial
+from typing import Any
 
 from ..api import APIServer, ServerInfo
-from ..arena import TaskCallback as ArenaCallback
-from ..core.common import DebateInfo, DebateResult, DimensionInfo
-from ..panel import TaskCallback as PanelCallback
+from ..core.action import AllPanelActions
+from ..core.common import DebateInfo, DebateResult, DebaterName, DimensionName
 from .base import Manager
+from .config import ManagerConfig
 
 
 class ManagerServer(APIServer):
-    def __init__(
-        self,
-        *,
-        debug: bool = False,
-        pre_arena_callback: ArenaCallback | None = None,
-        post_arena_callback: ArenaCallback | None = None,
-        pre_panel_callback: PanelCallback | None = None,
-        post_panel_callback: PanelCallback | None = None,
-    ) -> None:
+    def __init__(self, *, debug: bool = False) -> None:
         super().__init__(debug=debug)
 
-        self._manager = Manager(
-            pre_arena_callback=pre_arena_callback,
-            post_arena_callback=post_arena_callback,
-            pre_panel_callback=pre_panel_callback,
-            post_panel_callback=post_panel_callback,
-        )
+        self._managers: dict[str, Manager] = {}
 
-        self.assign("/manager/update_info", self.update_info)
-        self.assign("/manager/run", self.run)
+        self.assign("/{session_id}/create", self._create)
+        self.assign("/{session_id}/set_arena", self._set_arena)
+        self.assign("/{session_id}/set_panel", self._set_panel)
+        self.assign("/{session_id}/configure", self._configure)
 
-    @property
-    def dimensions(self) -> tuple[DimensionInfo, ...]:
-        return self._manager.dimensions
+        self.assign("/{session_id}/manager/load", self._manager_load)
+        self.assign("/{session_id}/manager/run", self._manager_run)
 
-    async def initialize(self) -> None:
-        await self._manager.initialize()
+    async def pre_arena_callback(
+        self, debater_name: DebaterName, *args: Any, session_id: str
+    ) -> None:
+        pass
 
-    def set_arena_interface_server(self, *, server_info: ServerInfo) -> None:
-        self._manager.set_arena_interface_server(server_info=server_info)
+    async def post_arena_callback(
+        self, debater_name: DebaterName, *args: Any, session_id: str
+    ) -> None:
+        pass
 
-    def set_panel_interface_server(self, *, server_info: ServerInfo) -> None:
-        self._manager.set_panel_interface_server(server_info=server_info)
+    async def pre_panel_callback(
+        self, action: AllPanelActions, dimension_name: DimensionName, *args: Any, session_id: str
+    ) -> None:
+        pass
 
-    async def set_dimensions(self, dimensions: Iterable[DimensionInfo], /) -> None:
-        await self._manager.set_dimensions(dimensions)
+    async def post_panel_callback(
+        self, action: AllPanelActions, dimension_name: DimensionName, *args: Any, session_id: str
+    ) -> None:
+        pass
 
     async def close(self) -> None:
-        await self._manager.close()
+        async with TaskGroup() as tg:
+            for manager in self._managers.values():
+                tg.create_task(manager.close())
 
-    async def update_info(self, debate_info: DebateInfo) -> None:
-        await self._manager.update_info(debate_info)
+    async def _create(self, session_id: str) -> None:
+        self._managers[session_id] = Manager(
+            session_id=session_id,
+            pre_arena_callback=partial(self.pre_arena_callback, session_id=session_id),
+            post_arena_callback=partial(self.post_arena_callback, session_id=session_id),
+            pre_panel_callback=partial(self.pre_panel_callback, session_id=session_id),
+            post_panel_callback=partial(self.post_panel_callback, session_id=session_id),
+        )
 
-    async def run(self, should_summarize: Annotated[bool, Body()]) -> DebateResult:
-        return await self._manager.run(should_summarize=should_summarize)
+        await self._managers[session_id].initialize()
+
+    async def _set_arena(self, session_id: str, server_info: ServerInfo) -> None:
+        self._managers[session_id].set_arena_interface_server(server_info=server_info)
+
+    async def _set_panel(self, session_id: str, server_info: ServerInfo) -> None:
+        self._managers[session_id].set_panel_interface_server(server_info=server_info)
+
+    async def _configure(self, session_id: str, config: ManagerConfig) -> None:
+        await self._managers[session_id].set_config(config)
+
+    async def _manager_load(self, session_id: str, debate_info: DebateInfo) -> None:
+        await self._managers[session_id].update_info(debate_info=debate_info)
+
+    async def _manager_run(self, session_id: str) -> DebateResult:
+        return await self._managers[session_id].run()

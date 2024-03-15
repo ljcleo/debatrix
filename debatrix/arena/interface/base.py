@@ -35,13 +35,13 @@ class ArenaInterface:
     def config(self, config: ArenaInterfaceConfig) -> None:
         self._config = config
 
-    async def reset(self, debater_name: DebaterName) -> None:
+    async def reset(self, debater_name: DebaterName, /) -> None:
         self._counter[debater_name] = 0
 
-    async def poll(self, debater_name: DebaterName) -> bool:
+    async def poll(self, debater_name: DebaterName, /) -> bool:
         return self._counter[debater_name] < len(self._speeches[debater_name])
 
-    async def query(self, debater_name: DebaterName) -> str:
+    async def query(self, debater_name: DebaterName, /) -> str:
         if self._counter[debater_name] >= len(self._speeches[debater_name]):
             return ""
 
@@ -60,7 +60,7 @@ class ArenaInterface:
         await self._callback(None, debater_name=debater_name)
         return speech
 
-    async def update(self, debater_name: DebaterName, speech: Speech) -> None:
+    async def update(self, debater_name: DebaterName, /, *, speech: Speech) -> None:
         if speech.debater_name == debater_name:
             self._counter[debater_name] += 1
 

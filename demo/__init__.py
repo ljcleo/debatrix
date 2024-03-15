@@ -1,3 +1,3 @@
-from .platform import PlatformUI
+from .platform import UIBasedPlatform
 
-__all__ = ["PlatformUI"]
+__all__ = ["UIBasedPlatform"]

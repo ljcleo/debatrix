@@ -7,7 +7,7 @@ from nicegui import ui
 
 from debatrix.util import sanitize, tokenize
 
-from ..util import get_avatar_url, prettify_json
+from .util import get_avatar_url, prettify_json
 
 
 class ChatBox:

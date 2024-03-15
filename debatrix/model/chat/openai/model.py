@@ -1,10 +1,9 @@
-import logging
 from asyncio import Semaphore
-from collections.abc import AsyncIterator
+from logging import WARNING, Logger, getLogger
 
 from httpx import AsyncClient
-from openai import AsyncOpenAI, AsyncStream, BadRequestError
-from openai.types.chat import ChatCompletion, ChatCompletionChunk, ChatCompletionMessageParam
+from openai import AsyncOpenAI, BadRequestError
+from openai.types.chat import ChatCompletion, ChatCompletionMessageParam
 from tenacity import (
     AsyncRetrying,
     before_sleep_log,
@@ -14,15 +13,15 @@ from tenacity import (
 )
 
 from ....util import sanitize
-from ..base import ChatModelABC
 from ...common import ChatHistory, ChatMessage, ChatRole
+from ..base import ChatModelABC
 from .config import OpenAIChatModelConfig
 
 
 class OpenAIChatModel(ChatModelABC):
     def __init__(self) -> None:
         self._semaphore = Semaphore(value=8)
-        self._logger = logging.getLogger(__name__)
+        self._logger: Logger = getLogger(__name__)
 
         self._client_info_updated: bool = False
         self._opening_client: AsyncOpenAI | None = None
@@ -40,7 +39,7 @@ class OpenAIChatModel(ChatModelABC):
         if self._opening_client is not None:
             await self._opening_client.close()
 
-    async def predict(self, messages: ChatHistory) -> AsyncIterator[ChatMessage]:
+    async def predict(self, *, messages: ChatHistory) -> ChatMessage:
         client: AsyncOpenAI = await self._get_client()
 
         async with self._semaphore:
@@ -48,37 +47,7 @@ class OpenAIChatModel(ChatModelABC):
                 stop=stop_after_attempt(10),
                 wait=wait_random_exponential(min=4, max=60),
                 retry=retry_if_not_exception_type((RuntimeError, BadRequestError)),
-                before_sleep=before_sleep_log(self._logger, log_level=logging.INFO, exc_info=True),
-            ):
-                with attempt:
-                    stream: AsyncStream[ChatCompletionChunk] = await client.chat.completions.create(
-                        messages=self._prepare_messages(messages),
-                        model=self.config.model,
-                        stream=True,
-                        seed=19260817,
-                        temperature=0.0,
-                    )
-
-                    async for chunk in stream:
-                        stop_reason: str | None = chunk.choices[0].finish_reason
-                        if stop_reason is not None and stop_reason != "stop":
-                            raise RuntimeError(f"response doesn't stop properly: {stop_reason}")
-
-                        yield ChatMessage(
-                            role=ChatRole.AI, content=str(chunk.choices[0].delta.content)
-                        )
-
-                    return
-
-    async def predict_direct(self, messages: ChatHistory) -> ChatMessage:
-        client: AsyncOpenAI = await self._get_client()
-
-        async with self._semaphore:
-            async for attempt in AsyncRetrying(
-                stop=stop_after_attempt(10),
-                wait=wait_random_exponential(min=4, max=60),
-                retry=retry_if_not_exception_type((RuntimeError, BadRequestError)),
-                before_sleep=before_sleep_log(self._logger, log_level=logging.INFO, exc_info=True),
+                before_sleep=before_sleep_log(self._logger, log_level=WARNING, exc_info=True),
             ):
                 with attempt:
                     completion: ChatCompletion = await client.chat.completions.create(

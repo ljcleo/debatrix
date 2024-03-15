@@ -8,7 +8,8 @@ from nicegui import ui
 from debatrix.core.action import AllPanelActions
 from debatrix.core.common import DebateInfo, DebaterName, DimensionName
 
-from ..base import BaseUI, DelayedChatBox
+from ..base import BaseUI
+from ..chatbox import DelayedChatBox
 from ..util import format_info
 
 

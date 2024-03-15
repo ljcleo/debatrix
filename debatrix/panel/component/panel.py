@@ -47,13 +47,14 @@ class Judge(HasInterfaceObject, BaseJudge):
 
 @dataclass(kw_only=True)
 class Panel(HasInterfaceObject, BasePanel[Judge]):
+    session_id: InitVar[str]
     pre_callback: InitVar[TaskCallback | None] = None
     post_callback: InitVar[TaskCallback | None] = None
 
     def __post_init__(
-        self, pre_callback: TaskCallback | None, post_callback: TaskCallback | None
+        self, session_id: str, pre_callback: TaskCallback | None, post_callback: TaskCallback | None
     ) -> None:
-        self._interface = PanelInterfaceClient()
+        self._interface = PanelInterfaceClient(session_id=session_id)
         self._callbacks: dict[Stage, TaskCallback] = {}
 
         if pre_callback is not None:

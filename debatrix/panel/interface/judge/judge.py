@@ -105,13 +105,13 @@ class JudgeInterface(JudgeInterfaceABC, InterfaceWithHelper[JudgeTemplateType]):
     def iterate_analysis(self) -> bool:
         return self.config.iterate_analysis and self.config.analyze_speech
 
-    async def create(self, dimension_name: DimensionName, dimension: DimensionInfo) -> None:
+    async def create(self, dimension_name: DimensionName, /, *, dimension: DimensionInfo) -> None:
         await self._helper.add_dimension(dimension_name, dimension)
 
-    async def reset(self, dimension_name: DimensionName, debate_info: DebateInfo) -> None:
+    async def reset(self, dimension_name: DimensionName, /, *, debate_info: DebateInfo) -> None:
         await self._helper.get_dimension_memory(dimension_name).reset()
 
-    async def update(self, dimension_name: DimensionName, speech: Speech) -> None:
+    async def update(self, dimension_name: DimensionName, /, *, speech: Speech) -> None:
         wrapped = HelperJudgeWrapper(
             self.helper,
             action=JudgeAction.UPDATE,
@@ -132,7 +132,7 @@ class JudgeInterface(JudgeInterfaceABC, InterfaceWithHelper[JudgeTemplateType]):
         await wrapped.callback(f"# Temporary Score of {speech.debater_name}: {score}")
         await wrapped.close()
 
-    async def judge(self, dimension_name: DimensionName) -> Verdict:
+    async def judge(self, dimension_name: DimensionName, /) -> Verdict:
         wrapped = HelperJudgeWrapper(
             self.helper,
             action=JudgeAction.JUDGE,

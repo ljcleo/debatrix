@@ -28,7 +28,7 @@ class BaseManager(DebateObject, Generic[AT, PT]):
     def panel(self) -> PT:
         return self._panel
 
-    async def update_info(self, debate_info: DebateInfo, /) -> None:
+    async def update_info(self, *, debate_info: DebateInfo) -> None:
         self._debate_info = debate_info
         await self.arena.update_info()
 

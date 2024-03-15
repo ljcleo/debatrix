@@ -2,13 +2,13 @@ from pathlib import Path
 
 from .classes import (
     ArenaInterfaceConfigHub,
-    DimensionInfoHub,
-    MotionHub,
-    SpeechHub,
-    DebateRecordHub,
+    ManagerConfigHub,
     ModelConfigHub,
+    MotionHub,
     PanelInterfaceConfigHub,
-    PlatformConfigHub,
+    RecorderConfigHub,
+    RecordHub,
+    SpeechHub,
 )
 
 
@@ -19,9 +19,9 @@ class ResourceHub:
         self._model_config = ModelConfigHub(resource_root)
         self._arena_interface_config = ArenaInterfaceConfigHub(resource_root)
         self._panel_interface_config = PanelInterfaceConfigHub(resource_root)
-        self._dimension = DimensionInfoHub(resource_root)
-        self._platform = PlatformConfigHub(resource_root)
-        self._record = DebateRecordHub(resource_root)
+        self._manager_config = ManagerConfigHub(resource_root)
+        self._recorder_config = RecorderConfigHub(resource_root)
+        self._record = RecordHub(resource_root)
 
     @property
     def motion(self) -> MotionHub:
@@ -44,13 +44,13 @@ class ResourceHub:
         return self._panel_interface_config
 
     @property
-    def dimension(self) -> DimensionInfoHub:
-        return self._dimension
+    def manager_config(self) -> ManagerConfigHub:
+        return self._manager_config
 
     @property
-    def platform(self) -> PlatformConfigHub:
-        return self._platform
+    def recorder_config(self) -> RecorderConfigHub:
+        return self._recorder_config
 
     @property
-    def record(self) -> DebateRecordHub:
+    def record(self) -> RecordHub:
         return self._record

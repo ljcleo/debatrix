@@ -17,10 +17,10 @@ T = TypeVar("T", bound=str)
 
 
 class Helper:
-    def __init__(self, *, callback: StreamingCallback | None = None) -> None:
+    def __init__(self, *, session_id: str, callback: StreamingCallback | None = None) -> None:
         self._callback_func = callback
 
-        self._model = ModelClient()
+        self._model = ModelClient(session_id=session_id)
 
         self._parser = JSONParser()
         self._verdict_extractor = VerdictExtractor()
@@ -105,7 +105,9 @@ class Helper:
             cache.append(message)
             await self.callback(message, action=action, dimension_name=callback_dimension_name)
 
-        response: ChatMessage = await self._model.predict_direct(ChatHistory(root=tuple(cache)))
+        response: ChatMessage = await self._model.chat_predict(
+            messages=ChatHistory(root=tuple(cache))
+        )
 
         cache.append(response)
         if allow_ai_callback or response.role != ChatRole.AI:

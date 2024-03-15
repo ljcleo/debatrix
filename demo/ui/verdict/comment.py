@@ -2,7 +2,8 @@ from dataclasses import dataclass
 
 from debatrix.core.common import DimensionName
 
-from ..base import BaseUI, ChatBox
+from ..base import BaseUI
+from ..chatbox import ChatBox
 
 
 @dataclass(kw_only=True)

@@ -76,10 +76,10 @@ class PanelInterface(PanelInterfaceABC, InterfaceWithHelper[PanelTemplateType]):
     async def create(self) -> None:
         await self._helper.reset_dimensions()
 
-    async def reset(self, debate_info: DebateInfo) -> None:
+    async def reset(self, *, debate_info: DebateInfo) -> None:
         await self._helper.set_debate_info(debate_info)
 
-    async def summarize(self, verdicts: list[DimensionalVerdict]) -> Verdict:
+    async def summarize(self, *, verdicts: list[DimensionalVerdict]) -> Verdict:
         wrapped = HelperPanelWrapper(
             self.helper,
             action=PanelAction.SUMMARIZE,

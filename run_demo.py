@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from shutil import copy, rmtree
 
-from demo import PlatformUI
+from demo import UIBasedPlatform
 
 
 @dataclass
@@ -68,10 +68,10 @@ if __name__ in {"__main__", "__mp_main__"}:
         target_path.symlink_to((preset_path / target).absolute())
 
     Runner(debug=True).run(
-        PlatformUI(
+        UIBasedPlatform(
             Path("resource"),
-            debug=args.debug_server,
-            log_info=args.log_server_info,
+            fast_api_debug=args.debug_server,
+            fast_api_log_info=args.log_server_info,
             ui_host=args.ui_host,
             ui_port=args.ui_port,
         ).serve()

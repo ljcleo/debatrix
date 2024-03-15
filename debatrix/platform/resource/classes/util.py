@@ -16,10 +16,13 @@ def load_yaml(*, dir: Path, name: str, output_type: type[T]) -> T:
         return RootModel[output_type].model_validate(safe_load(f)).root
 
 
-def dump_yaml(obj: Any, /, *, dir: Path, name: str) -> None:
+def dump_yaml(obj: Any, /, *, dir: Path, name: str) -> Path:
     dir.mkdir(exist_ok=True)
+    target: Path = dir / f"{name}.yml"
 
-    with (dir / f"{name}.yml").open("w", encoding="utf8") as f:
+    with target.open("w", encoding="utf8") as f:
         safe_dump(
             RootModel(obj).model_dump(mode="json"), f, default_flow_style=False, sort_keys=False
         )
+
+    return target

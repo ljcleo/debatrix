@@ -5,10 +5,14 @@ from nicegui import ui
 from ..base import BaseUI
 
 
-class DimensionConfigUI(BaseUI[list[Any]]):
-    def init_ui(self, dimensions: list[Any]) -> None:
+class ManagerConfigUI(BaseUI[list[Any]]):
+    def init_ui(self, config: dict[str, Any]) -> None:
         with ui.grid(columns=1).classes("w-full"):
-            for dimension in dimensions:
+            ui.switch("Should Summarize General Verdict").classes("w-full").bind_value(
+                config, "should_summarize"
+            )
+
+            for dimension in config["dimensions"]:
                 with ui.card().classes("w-full"):
                     ui.label(text=dimension["name"].capitalize()).classes("w-full text-lg")
 

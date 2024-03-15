@@ -1,5 +1,5 @@
 from argparse import ArgumentParser
-from asyncio import CancelledError, Runner, Task, create_task, sleep
+from asyncio import CancelledError, Runner, Semaphore, Task, TaskGroup
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
@@ -8,7 +8,7 @@ from typing import Any, Literal
 
 from debatrix.core.common import DebateResult, Verdict
 from debatrix.model import ChatModelBackend
-from debatrix.platform import Platform
+from debatrix.platform import Platform, Session
 
 
 @dataclass
@@ -29,102 +29,112 @@ class ScriptArgs:
     root_dir: str = ""
 
 
-async def main(platform: Platform, /, *, args: ScriptArgs) -> None:
-    task: Task[None] = create_task(platform.serve())
-    await sleep(2)
+async def work(session: Session, /, *, debate_id: int, args: ScriptArgs) -> None:
+    arena_interface_config: Any = session.arena_interface_config_data
+    arena_interface_config["streaming_delay"] = 0
+
+    chat_model_config: Any = session.model_config_data["chat_config"]
+
+    chat_model_config["backend"] = (
+        ChatModelBackend.TEST if args.llm == "test" else ChatModelBackend.OPENAI
+    )
+
+    chat_model_config["test_config"]["direct_delay"] = 0
+
+    chat_model_config["openai_config"]["model"] = (
+        "gpt-4-0125-preview" if args.llm == "gpt4" else "gpt-3.5-turbo-0125"
+    )
+
+    judge_interface_config: Any = session.panel_interface_config_data["judge_config"]
+    judge_interface_config["allow_concurrency"] = True
+    judge_interface_config["allow_ai_callback"] = False
+    judge_interface_config["analyze_speech"] = args.framework != "gpt"
+    judge_interface_config["iterate_analysis"] = args.framework == "debatrix"
+
+    panel_interface_config: Any = session.panel_interface_config_data["panel_config"]
+    panel_interface_config["allow_concurrency"] = True
+    panel_interface_config["allow_ai_callback"] = False
+
+    manager_config: Any = session.manager_config_data
+    manager_config["should_summarize"] = args.should_summarize
+
+    if args.dimensions is not None:
+        for dimension in manager_config["dimensions"]:
+            if dimension["name"] not in args.dimensions:
+                dimension["weight"] = -1
+
+    recorder_config: Any = session.recorder_config_data
+    recorder_config["include_prompts"] = False
+    recorder_config["verdict_only"] = True
+
+    await session.update_config()
+
+    motion_code: str = session.motions[debate_id][0]
+    await session.select_debate(motion_code)
+    assert session.cur_info is not None
+    title: str = f"{motion_code} --- {session.cur_info.motion}"
+
+    print(f"Start: {title}\n")
 
     try:
-        platform.refresh_config()
-        await sleep(2)
+        result: DebateResult | None = await session.start_debate()
+        print(f"End: {title}\n")
 
-        chat_model_config: Any = platform.model_config_data["chat_config"]
+        if result is None:
+            print("Debate cancelled.\n")
+        else:
+            if args.should_summarize:
+                final_verdict: Verdict | None = result.final_verdict
+                assert final_verdict is not None
 
-        chat_model_config["backend"] = (
-            ChatModelBackend.TEST if args.llm == "test" else ChatModelBackend.OPENAI
-        )
+                for debater_verdict in final_verdict.debaters_verdict:
+                    print(f"{debater_verdict.debater_name}: {debater_verdict.score}")
 
-        chat_model_config["openai_config"]["model"] = (
-            "gpt-4-0125-preview" if args.llm == "gpt4" else "gpt-3.5-turbo-0125"
-        )
+                print(f"Winner: {final_verdict.winner_verdict.winner}\n")
+            else:
+                debaters_scores: defaultdict[str, list[int]] = defaultdict(list)
+                winners: list[str] = []
 
-        judge_interface_config: Any = platform.panel_interface_config_data["judge_config"]
-        judge_interface_config["allow_concurrency"] = True
-        judge_interface_config["allow_ai_callback"] = False
-        judge_interface_config["analyze_speech"] = args.framework != "gpt"
-        judge_interface_config["iterate_analysis"] = args.framework == "debatrix"
+                for dimension_verdict in result.dimensional_verdicts:
+                    for debater_verdict in dimension_verdict.verdict.debaters_verdict:
+                        debaters_scores[debater_verdict.debater_name].append(debater_verdict.score)
 
-        panel_interface_config: Any = platform.panel_interface_config_data["panel_config"]
-        panel_interface_config["allow_concurrency"] = True
-        panel_interface_config["allow_ai_callback"] = False
+                    winners.append(dimension_verdict.verdict.winner_verdict.winner)
 
-        platform_config: Any = platform.platform_config_data
-        platform_config["should_summarize"] = args.should_summarize
-        platform_config["record_prompts"] = False
-        platform_config["record_verdict_only"] = True
+                for debater_name, scores in debaters_scores.items():
+                    print(f"{debater_name}: {', '.join([str(score) for score in scores])}")
 
-        if args.dimensions is not None:
-            new_dimensions_data: list[Any] = [
-                x for x in platform.dimensions_data if x["name"] in args.dimensions
-            ]
+                print(f"Winner: {', '.join(winners)}\n")
 
-            platform.dimensions_data.clear()
-            platform.dimensions_data.extend(new_dimensions_data)
-
-        await platform.update_config()
-        await sleep(2)
-
-        for debate, _ in platform.motions[args.start : args.stop]:
-            await platform.select_debate(debate)
-            assert platform.cur_info is not None
-            print(f"Current: {debate} --- {platform.cur_info.motion}\n")
-
-            for _ in range(args.repeat):
-                try:
-                    result: DebateResult | None = await platform.start_debate()
-
-                    if result is None:
-                        print("Debate cancelled.")
-                    else:
-                        if args.should_summarize:
-                            final_verdict: Verdict | None = result.final_verdict
-                            assert final_verdict is not None
-
-                            for debater_verdict in final_verdict.debaters_verdict:
-                                print(f"{debater_verdict.debater_name}: {debater_verdict.score}")
-
-                            print(f"Winner: {final_verdict.winner_verdict.winner}\n")
-                        else:
-                            debaters_scores: defaultdict[str, list[int]] = defaultdict(list)
-                            winners: list[str] = []
-
-                            for dimension_verdict in result.dimensional_verdicts:
-                                for debater_verdict in dimension_verdict.verdict.debaters_verdict:
-                                    debaters_scores[debater_verdict.debater_name].append(
-                                        debater_verdict.score
-                                    )
-
-                                winners.append(dimension_verdict.verdict.winner_verdict.winner)
-
-                            for debater_name, scores in debaters_scores.items():
-                                print(
-                                    f"{debater_name}: {', '.join([str(score) for score in scores])}"
-                                )
-
-                            print(f"Winner: {', '.join(winners)}\n")
-
-                    save_name: str = await platform.save_record()
-                    print(f"Verdict saved at {save_name}.yml\n")
-                except Exception as e:
-                    print(f"Failed: {e}")
-                finally:
-                    await platform.reset_debate()
+        print(f"Verdict saved at {await session.save_record()}\n")
+    except Exception as e:
+        print(f"Failed: {e}\n")
     finally:
-        task.cancel()
+        await session.reset_debate()
+
+
+async def main(platform: Platform, /, *, args: ScriptArgs) -> None:
+    async with TaskGroup() as tg:
+        task: Task[None] = tg.create_task(platform.serve())
 
         try:
-            await task
-        except CancelledError:
-            pass
+            semaphore = Semaphore(4)
+
+            async def wait_and_work(debate_id: int, /) -> None:
+                async with semaphore:
+                    await work(await platform.assign(), debate_id=debate_id, args=args)
+
+            async with TaskGroup() as inner_tg:
+                for debate_id in range(args.start, args.stop):
+                    for _ in range(args.repeat):
+                        inner_tg.create_task(wait_and_work(debate_id))
+        finally:
+            task.cancel()
+
+            try:
+                await task
+            except CancelledError:
+                pass
 
 
 if __name__ == "__main__":
@@ -197,7 +207,10 @@ if __name__ == "__main__":
         target_path.symlink_to((preset_path / target).absolute())
 
     Runner(debug=True).run(
-        main(Platform(resource_path, debug=args.debug_server, log_info=False), args=args)
+        main(
+            Platform(resource_path, fast_api_debug=args.debug_server, fast_api_log_info=False),
+            args=args,
+        )
     )
 
     print("Cleaning up ...")

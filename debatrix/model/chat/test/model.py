@@ -1,10 +1,8 @@
 import re
 from asyncio import sleep
-from collections.abc import AsyncIterator
 from json import dumps
 from random import Random
 
-from ....util import tokenize
 from ..base import ChatModelABC
 from ...common import ChatHistory, ChatMessage, ChatRole
 from .config import TestChatModelConfig
@@ -33,16 +31,11 @@ class TestChatModel(ChatModelABC):
     def config(self, config: TestChatModelConfig) -> None:
         self._config = config
 
-    async def predict(self, messages: ChatHistory) -> AsyncIterator[ChatMessage]:
-        for token in tokenize(self._respond(messages)):
-            await sleep(self.config.streaming_delay)
-            yield ChatMessage(role=ChatRole.AI, content=token)
-
-    async def predict_direct(self, messages: ChatHistory) -> ChatMessage:
+    async def predict(self, *, messages: ChatHistory) -> ChatMessage:
         await sleep(self.config.direct_delay)
-        return ChatMessage(role=ChatRole.AI, content=self._respond(messages))
+        return ChatMessage(role=ChatRole.AI, content=self._respond(messages=messages))
 
-    def _respond(self, messages: ChatHistory, /) -> str:
+    def _respond(self, *, messages: ChatHistory) -> str:
         concat_messages: str = ("\n\n" + "-" * 16 + "\n\n").join(
             f"{message.role}:\n\n{message.content}" for message in messages
         )

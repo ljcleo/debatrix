@@ -1,5 +1,5 @@
-import re
-import logging
+from asyncio import CancelledError
+from logging import Logger, getLogger, WARNING
 from collections.abc import AsyncIterator, Mapping
 from contextlib import asynccontextmanager
 from typing import Any, Literal, TypeVar
@@ -26,7 +26,7 @@ class APIClient:
         self._info_updated: bool = False
         self._opened_session: ClientSession | None = None
         self._timeout = ClientTimeout(total=timeout)
-        self._logger = logging.getLogger()
+        self._logger: Logger = getLogger(__name__)
 
     @property
     def address(self) -> str:
@@ -58,80 +58,77 @@ class APIClient:
     ) -> T | None:
         key: str | None = None
 
-        async for attempt in AsyncRetrying(
-            stop=stop_after_attempt(max_retries),
-            wait=wait_random_exponential(multiplier=4, max=60),
-            before_sleep=before_sleep_log(self._logger, log_level=logging.WARNING, exc_info=True),
-        ):
-            with attempt:
-                async with self._request(path, data, extra_headers=extra_headers) as response:
-                    text: str = await response.text(encoding="utf8")
-                    if response.status != 200:
-                        raise RuntimeError(response.status, text)
+        try:
+            async for attempt in AsyncRetrying(
+                stop=stop_after_attempt(max_retries),
+                wait=wait_random_exponential(multiplier=4, max=60),
+                before_sleep=before_sleep_log(self._logger, log_level=WARNING, exc_info=True),
+            ):
+                with attempt:
+                    async with self._request(path, data, extra_headers=extra_headers) as response:
+                        text: str = await response.text(encoding="utf8")
+                        if response.status != 200:
+                            raise RuntimeError(response.status, text)
 
-                key: str | None = self._parse(text, str)[1]
-                assert key is not None
+                    key: str | None = self._parse(text, str)[1]
+                    assert key is not None
 
-        async for attempt in AsyncRetrying(
-            stop=stop_after_attempt(max_retries),
-            wait=wait_random_exponential(multiplier=4, max=60),
-            before_sleep=before_sleep_log(self._logger, log_level=logging.WARNING, exc_info=True),
-        ):
-            with attempt:
-                async with self._request(f"{path}/start?key={key}", mode="put") as response:
-                    text: str = await response.text(encoding="utf8")
-                    if response.status != 200:
-                        raise RuntimeError(response.status, text)
+            async for attempt in AsyncRetrying(
+                stop=stop_after_attempt(max_retries),
+                wait=wait_random_exponential(multiplier=4, max=60),
+                before_sleep=before_sleep_log(self._logger, log_level=WARNING, exc_info=True),
+            ):
+                with attempt:
+                    async with self._request(f"{path}/start?key={key}", mode="put") as response:
+                        text: str = await response.text(encoding="utf8")
+                        if response.status != 200:
+                            raise RuntimeError(response.status, text)
 
-                self._parse(text, bool)
+                    self._parse(text, bool)
 
-        async for attempt in AsyncRetrying(
-            stop=stop_after_attempt(max_retries),
-            wait=wait_random_exponential(multiplier=4, max=60),
-            before_sleep=before_sleep_log(self._logger, log_level=logging.WARNING, exc_info=True),
-        ):
-            with attempt:
-                async for inner_attempt in AsyncRetrying(
-                    wait=wait_random(min=3, max=5), retry=retry_unless_exception_type()
+            async for attempt in AsyncRetrying(
+                stop=stop_after_attempt(max_retries),
+                wait=wait_random_exponential(multiplier=4, max=60),
+                before_sleep=before_sleep_log(self._logger, log_level=WARNING, exc_info=True),
+            ):
+                with attempt:
+                    async for inner_attempt in AsyncRetrying(
+                        wait=wait_random(min=3, max=5), retry=retry_unless_exception_type()
+                    ):
+                        with inner_attempt:
+                            async with self._request(
+                                f"{path}/status?key={key}", mode="get"
+                            ) as response:
+                                text: str = await response.text(encoding="utf8")
+                                if response.status != 200:
+                                    raise RuntimeError(response.status, text)
+
+                            finished: bool
+                            result: T | None
+                            finished, result = self._parse(text, output_type)
+
+                            if finished:
+                                return result
+        except CancelledError:
+            print("Sending cancel signal to", path, "...")
+
+            try:
+                async for attempt in AsyncRetrying(
+                    stop=stop_after_attempt(max_retries),
+                    wait=wait_random_exponential(multiplier=4, max=60),
+                    before_sleep=before_sleep_log(self._logger, log_level=WARNING, exc_info=True),
                 ):
-                    with inner_attempt:
+                    with attempt:
                         async with self._request(
-                            f"{path}/status?key={key}", mode="get"
+                            f"{path}/cancel?key={key}", mode="put"
                         ) as response:
                             text: str = await response.text(encoding="utf8")
                             if response.status != 200:
                                 raise RuntimeError(response.status, text)
 
-                        finished: bool
-                        result: T | None
-                        finished, result = self._parse(text, output_type)
-
-                        if finished:
-                            return result
-
-    async def query_sse(
-        self,
-        path: str,
-        data: Any | None = None,
-        /,
-        *,
-        output_type: type[T],
-        extra_headers: Mapping[str, str] | None = None,
-    ) -> AsyncIterator[T | None]:
-        async with self._request(path, data, extra_headers=extra_headers) as response:
-            if response.status != 200:
-                raise RuntimeError(response.status, await response.text(encoding="utf8"))
-
-            async for chunk in response.content.iter_any():
-                for match in re.finditer("^data: (.*)$", chunk.decode(), flags=re.MULTILINE):
-                    finished: bool
-                    result: T | None
-                    finished, result = self._parse(match.group(1).strip(), output_type)
-
-                    if finished:
-                        return
-
-                    yield result
+                        self._parse(text, bool)
+            except CancelledError:
+                pass
 
     @asynccontextmanager
     async def _request(

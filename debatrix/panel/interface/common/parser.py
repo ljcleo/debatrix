@@ -60,7 +60,7 @@ class JSONParser:
                     retries += 1
 
                     raw = (
-                        await fix_model.predict_direct(
+                        await fix_model.chat_predict(
                             make_single_chat(
                                 self.config.fix_prompt_template,
                                 instructions=self.make_schema_prompt(output_type),
