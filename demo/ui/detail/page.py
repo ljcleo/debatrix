@@ -109,9 +109,15 @@ class DimensionalPageUI(PageUI):
         self._dimensions_name: list[DimensionName] = list(dimensions_name)
 
     def init_ui(self) -> None:
-        with ui.grid(columns=10).classes("w-full h-full min-h-[64rem] 2xl:min-h-[40rem]"):
+        n_dim: int = len(self._dimensions_name)
+        n_col: int = n_dim << 1
+
+        with ui.grid(columns=n_col).classes("w-full h-full min-h-[64rem] 2xl:min-h-[40rem]"):
             for dimension in self._dimensions_name:
-                self.add_block(dimension, extra_classes="col-span-10 md:col-span-5 2xl:col-span-2")
+                self.add_block(
+                    dimension,
+                    extra_classes=f"col-span-{n_col} md:col-span-{max(n_dim, 2)} 2xl:col-span-2",
+                )
 
     def get_block_key(self, action: AllPanelActions, dimension_name: DimensionName) -> str:
         return dimension_name

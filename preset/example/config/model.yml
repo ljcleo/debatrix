@@ -1,8 +1,7 @@
 chat_config:
   backend: test
   test_config:
-    streaming_delay: 0.01
-    direct_delay: 1
+    predict_delay: 1
   openai_config:
     model: gpt-3.5-turbo-0125
     api_key: ""

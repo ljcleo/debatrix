@@ -32,7 +32,7 @@ class TestChatModel(ChatModelABC):
         self._config = config
 
     async def predict(self, *, messages: ChatHistory) -> ChatMessage:
-        await sleep(self.config.direct_delay)
+        await sleep(self.config.predict_delay)
         return ChatMessage(role=ChatRole.AI, content=self._respond(messages=messages))
 
     def _respond(self, *, messages: ChatHistory) -> str:

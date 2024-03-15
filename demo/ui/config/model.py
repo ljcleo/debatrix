@@ -26,12 +26,8 @@ class ModelConfigUI(BaseUI[dict[str, Any]]):
                 ):
                     test_chat_config: Any = chat_config["test_config"]
 
-                    ui.number(label="Streaming Delay", min=0, step=0.01).classes(
-                        "w-full"
-                    ).bind_value(test_chat_config, target_name="streaming_delay")
-
-                    ui.number(label="Direct Delay", min=0, step=0.1).classes("w-full").bind_value(
-                        test_chat_config, target_name="direct_delay"
+                    ui.number(label="Predict Delay", min=0, step=0.1).classes("w-full").bind_value(
+                        test_chat_config, target_name="predict_delay"
                     )
 
                 with ui.card().classes("w-full").bind_visibility_from(
@@ -57,6 +53,11 @@ class ModelConfigUI(BaseUI[dict[str, Any]]):
                         label="API Base URL (Optional)",
                         placeholder="https://api.openai.com/v1",
                     ).classes("w-full").bind_value(openai_chat_config, target_name="base_url")
+
+                    ui.input(
+                        label="Proxy (Optional)",
+                        placeholder="http://example.com:1234",
+                    ).classes("w-full").bind_value(openai_chat_config, target_name="proxy")
 
         with ui.grid(columns=1).classes("w-full"):
             with ui.card().classes("w-full"):
@@ -92,3 +93,8 @@ class ModelConfigUI(BaseUI[dict[str, Any]]):
                         label="API Base URL (Optional)",
                         placeholder="https://api.openai.com/v1",
                     ).classes("w-full").bind_value(openai_embed_config, target_name="base_url")
+
+                    ui.input(
+                        label="Proxy (Optional)",
+                        placeholder="http://example.com:1234",
+                    ).classes("w-full").bind_value(openai_embed_config, target_name="proxy")
