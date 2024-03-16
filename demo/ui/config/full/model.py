@@ -4,8 +4,8 @@ from nicegui import ui
 
 from debatrix.model import ChatModelBackend, EmbedModelBackend
 
-from ..base import BaseUI
-from .util import VALIDATIONS
+from ...base import BaseUI
+from ..util import VALIDATIONS
 
 
 class ModelConfigUI(BaseUI[dict[str, Any]]):

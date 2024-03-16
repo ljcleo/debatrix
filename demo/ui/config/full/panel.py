@@ -4,7 +4,7 @@ from typing import Any
 from nicegui import ui
 from nicegui.events import ValueChangeEventArguments
 
-from ..base import BaseUI
+from ...base import BaseUI
 
 
 class PanelInterfaceConfigUI(BaseUI[dict[str, Any]]):

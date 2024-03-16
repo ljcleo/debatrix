@@ -2,7 +2,7 @@ from typing import Any
 
 from nicegui import ui
 
-from ..base import BaseUI
+from ...base import BaseUI
 
 
 class ManagerConfigUI(BaseUI[list[Any]]):
@@ -13,7 +13,7 @@ class ManagerConfigUI(BaseUI[list[Any]]):
             )
 
             for dimension in config["dimensions"]:
-                with ui.card().classes("w-full"):
+                with ui.card().tight().classes("w-full"):
                     ui.label(text=dimension["name"].capitalize()).classes("w-full text-lg")
 
                     ui.number(label="Weight", min=-1, precision=0, step=1, format="%d").classes(

@@ -2,7 +2,7 @@ from typing import Any
 
 from nicegui import ui
 
-from ..base import BaseUI
+from ...base import BaseUI
 
 
 class RecorderConfigUI(BaseUI[dict[str, Any]]):
