@@ -23,6 +23,11 @@ class ManagerServer(APIServer):
         self.assign("/{session_id}/manager/load", self._manager_load)
         self.assign("/{session_id}/manager/run", self._manager_run)
 
+    async def close(self) -> None:
+        async with TaskGroup() as tg:
+            for manager in self._managers.values():
+                tg.create_task(manager.close())
+
     async def pre_arena_callback(
         self, debater_name: DebaterName, *args: Any, session_id: str
     ) -> None:
@@ -42,11 +47,6 @@ class ManagerServer(APIServer):
         self, action: AllPanelActions, dimension_name: DimensionName, *args: Any, session_id: str
     ) -> None:
         pass
-
-    async def close(self) -> None:
-        async with TaskGroup() as tg:
-            for manager in self._managers.values():
-                tg.create_task(manager.close())
 
     async def _create(self, session_id: str) -> None:
         self._managers[session_id] = Manager(

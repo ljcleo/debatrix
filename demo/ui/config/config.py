@@ -21,12 +21,12 @@ class ConfigUI(BaseUI[Session]):
 
         with ui.tab_panels(config_tabs, value="model").classes("w-full grow"):
             with ui.tab_panel("model"):
-                ModelConfigUI().register_ui(session.model_config_data)
+                ModelConfigUI().register_ui(session.config_data["model"])
             with ui.tab_panel("arena"):
-                ArenaInterfaceConfigUI().register_ui(session.arena_interface_config_data)
+                ArenaInterfaceConfigUI().register_ui(session.config_data["arena"])
             with ui.tab_panel("panel"):
-                PanelInterfaceConfigUI().register_ui(session.panel_interface_config_data)
+                PanelInterfaceConfigUI().register_ui(session.config_data["panel"])
             with ui.tab_panel("manager"):
-                ManagerConfigUI().register_ui(session.manager_config_data)
+                ManagerConfigUI().register_ui(session.config_data["manager"])
             with ui.tab_panel("recorder"):
-                RecorderConfigUI().register_ui(session.recorder_config_data)
+                RecorderConfigUI().register_ui(session.config_data["recorder"])

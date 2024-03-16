@@ -30,32 +30,34 @@ class ScriptArgs:
 
 
 async def work(session: Session, /, *, debate_id: int, args: ScriptArgs) -> None:
-    arena_interface_config: Any = session.arena_interface_config_data
+    config: dict[str, Any] = session.config_data
+
+    arena_interface_config: dict[str, Any] = config["arena"]
     arena_interface_config["streaming_delay"] = 0
 
-    chat_model_config: Any = session.model_config_data["chat_config"]
+    chat_model_config: dict[str, Any] = config["model"]["chat_config"]
 
     chat_model_config["backend"] = (
         ChatModelBackend.TEST if args.llm == "test" else ChatModelBackend.OPENAI
     )
 
-    chat_model_config["test_config"]["direct_delay"] = 0
+    chat_model_config["test_config"]["predict_delay"] = 0
 
     chat_model_config["openai_config"]["model"] = (
         "gpt-4-0125-preview" if args.llm == "gpt4" else "gpt-3.5-turbo-0125"
     )
 
-    judge_interface_config: Any = session.panel_interface_config_data["judge_config"]
+    judge_interface_config: dict[str, Any] = config["panel"]["judge_config"]
     judge_interface_config["allow_concurrency"] = True
     judge_interface_config["allow_ai_callback"] = False
     judge_interface_config["analyze_speech"] = args.framework != "gpt"
     judge_interface_config["iterate_analysis"] = args.framework == "debatrix"
 
-    panel_interface_config: Any = session.panel_interface_config_data["panel_config"]
+    panel_interface_config: dict[str, Any] = config["panel"]["panel_config"]
     panel_interface_config["allow_concurrency"] = True
     panel_interface_config["allow_ai_callback"] = False
 
-    manager_config: Any = session.manager_config_data
+    manager_config: dict[str, Any] = config["manager"]
     manager_config["should_summarize"] = args.should_summarize
 
     if args.dimensions is not None:
@@ -63,7 +65,7 @@ async def work(session: Session, /, *, debate_id: int, args: ScriptArgs) -> None
             if dimension["name"] not in args.dimensions:
                 dimension["weight"] = -1
 
-    recorder_config: Any = session.recorder_config_data
+    recorder_config: dict[str, Any] = config["recorder"]
     recorder_config["include_prompts"] = False
     recorder_config["verdict_only"] = True
 

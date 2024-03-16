@@ -60,7 +60,7 @@ class UIBasedSession(Session):
         await super().setup()
 
         if "state" in app.storage.user:
-            await self.set_session_state(app.storage.user["state"])
+            await self.set_config_data(app.storage.user["state"])
         else:
             self.cache_session_state()
 
@@ -81,9 +81,7 @@ class UIBasedSession(Session):
                 debate_info=self.cur_info,
                 dimensions_name=[
                     dimension.name
-                    for dimension in self.config_buffer_hub.manager.get_valid_dimensions(
-                        self.session_id
-                    )
+                    for dimension in self.config_buffer.get_valid_dimensions(self.session_id)
                 ],
             )
 
@@ -114,4 +112,4 @@ class UIBasedSession(Session):
         self._ui.register_ui(self)
 
     def cache_session_state(self) -> None:
-        app.storage.user["state"] = self.session_state
+        app.storage.user["state"] = self.config_data

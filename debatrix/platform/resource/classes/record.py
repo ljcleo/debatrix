@@ -6,10 +6,8 @@ from .util import dump_yaml
 
 
 class RecordHub:
-    default_dir: Path = Path("record")
-
-    def __init__(self, resource_root: Path, *, sub_dir: Path = default_dir) -> None:
-        self._record_dir: Path = resource_root / sub_dir
+    def __init__(self, resource_root: Path, /) -> None:
+        self._dir: Path = resource_root / "record"
 
     def dump(self, name: str, records: Iterable[GroupedRecord], /) -> Path:
-        return dump_yaml(list(records), dir=self._record_dir, name=name)
+        return dump_yaml(list(records), dir=self._dir, name=name)

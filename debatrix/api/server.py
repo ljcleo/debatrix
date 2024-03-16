@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from asyncio import sleep
 from collections import deque
 from collections.abc import Callable, Coroutine
@@ -15,7 +16,7 @@ from .util import prettify_exception
 P = ParamSpec("P")
 
 
-class APIServer:
+class APIServer(ABC):
     def __init__(self, *, debug: bool = False) -> None:
         self._app = FastAPI(debug=debug)
         self._cache_queue: deque[int] = deque()
@@ -93,3 +94,7 @@ class APIServer:
         self._app.put(f"{path}/start", response_model=APIResponse[bool])(start)
         self._app.get(f"{path}/status", response_model=APIResponse)(status)
         self._app.put(f"{path}/cancel", response_model=APIResponse)(cancel)
+
+    @abstractmethod
+    async def close(self) -> None:
+        raise NotImplementedError()

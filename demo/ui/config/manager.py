@@ -8,7 +8,7 @@ from ..base import BaseUI
 class ManagerConfigUI(BaseUI[list[Any]]):
     def init_ui(self, config: dict[str, Any]) -> None:
         with ui.grid(columns=1).classes("w-full"):
-            ui.switch("Should Summarize General Verdict").classes("w-full").bind_value(
+            ui.switch("Summarize General Verdict").classes("w-full").bind_value(
                 config, "should_summarize"
             )
 

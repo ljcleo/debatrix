@@ -55,9 +55,8 @@ class UIBasedPlatform(BasePlatform[UIBasedSession]):
             resource_hub=self._resource_hub,
             process_hub=self._process_hub,
             recorder_hub=self._recorder_hub,
-            config_buffer_hub=self._config_buffer_hub,
-            arena_callback_arranger_manager=self._arena_callback_arranger_manager,
-            panel_callback_arranger_manager=self._panel_callback_arranger_manager,
+            config_buffer=self._config_buffer,
+            callback_hub=self._callback_hub,
         )
 
     async def _register_ui(self) -> None:

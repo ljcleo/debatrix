@@ -5,10 +5,8 @@ from multiprocessing import Manager
 from pathlib import Path
 from typing import Generic, TypeVar
 
-from ..core.action import AllPanelActions
-from ..core.common import DebaterName, DimensionName
-from .callback import CallbackArrangerManager
-from .config_buffer import ConfigBufferHub
+from .callback import CallbackHub
+from .buffer import ConfigBuffer
 from .process import ProcessHub
 from .record import RecorderHub
 from .resource import ResourceHub
@@ -30,37 +28,24 @@ class BasePlatform(Generic[T]):
         self._process_hub = ProcessHub(debug=self.fast_api_debug, log_info=self.fast_api_log_info)
         self._recorder_hub = RecorderHub()
 
-        self._config_buffer_hub = ConfigBufferHub(
-            self._resource_hub,
+        self._config_buffer = ConfigBuffer(
+            self._resource_hub.config,
             self._process_hub,
             self._recorder_hub,
             dump_after_update=self.dump_config_after_update,
         )
 
-        self._arena_callback_arranger_manager: CallbackArrangerManager[DebaterName] = (
-            CallbackArrangerManager()
-        )
-
-        self._panel_callback_arranger_manager: CallbackArrangerManager[
-            tuple[AllPanelActions, DimensionName]
-        ] = CallbackArrangerManager()
-
+        self._callback_hub = CallbackHub()
         self._sessions: dict[str, T] = {}
 
     async def serve(self) -> None:
         with Manager() as process_manager:
-            self._process_hub.manager.init_cb_queue(process_manager=process_manager)
-            self._process_hub.arena_interface.init_cb_queue(process_manager=process_manager)
-            self._process_hub.panel_interface.init_cb_queue(process_manager=process_manager)
+            self._process_hub.setup(process_manager=process_manager)
 
             try:
                 async with TaskGroup() as tg:
-                    tg.create_task(self._process_hub.manager.serve())
-                    tg.create_task(self._process_hub.arena_interface.serve())
-                    tg.create_task(self._process_hub.panel_interface.serve())
-                    tg.create_task(self._process_hub.model.serve())
-                    tg.create_task(self._arena_callback_arranger_manager.serve())
-                    tg.create_task(self._panel_callback_arranger_manager.serve())
+                    tg.create_task(self._process_hub.serve())
+                    tg.create_task(self._callback_hub.serve())
             finally:
                 async with TaskGroup() as tg:
                     for session in self._sessions.values():
@@ -84,7 +69,6 @@ class Platform(BasePlatform[Session]):
             resource_hub=self._resource_hub,
             process_hub=self._process_hub,
             recorder_hub=self._recorder_hub,
-            config_buffer_hub=self._config_buffer_hub,
-            arena_callback_arranger_manager=self._arena_callback_arranger_manager,
-            panel_callback_arranger_manager=self._panel_callback_arranger_manager,
+            config_buffer=self._config_buffer,
+            callback_hub=self._callback_hub,
         )

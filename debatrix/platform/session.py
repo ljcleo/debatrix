@@ -10,8 +10,8 @@ from uuid import uuid4
 from ..core.action import AllPanelActions, JudgeAction, PanelAction
 from ..core.common import DebateInfo, DebateResult, DebaterName, DimensionName
 from ..manager import ManagerClient
-from .callback import CallbackArrangerManager, CallbackStage
-from .config_buffer import ConfigBufferHub
+from .buffer import ConfigBuffer
+from .callback import CallbackHub, CallbackStage
 from .process import ProcessHub
 from .record import Recorder, RecorderHub
 from .resource import ResourceHub
@@ -22,9 +22,8 @@ class Session:
     resource_hub: ResourceHub
     process_hub: ProcessHub
     recorder_hub: RecorderHub
-    config_buffer_hub: ConfigBufferHub
-    arena_callback_arranger_manager: CallbackArrangerManager[DebaterName]
-    panel_callback_arranger_manager: CallbackArrangerManager[tuple[AllPanelActions, DimensionName]]
+    config_buffer: ConfigBuffer
+    callback_hub: CallbackHub
 
     def __post_init__(self) -> None:
         self._cur_motion: str | None = None
@@ -80,34 +79,8 @@ class Session:
         return self._cur_info
 
     @property
-    def model_config_data(self) -> Any:
-        return self._model_config_data
-
-    @property
-    def arena_interface_config_data(self) -> Any:
-        return self._arena_interface_config_data
-
-    @property
-    def panel_interface_config_data(self) -> Any:
-        return self._panel_interface_config_data
-
-    @property
-    def manager_config_data(self) -> Any:
-        return self._manager_config_data
-
-    @property
-    def recorder_config_data(self) -> Any:
-        return self._recorder_config_data
-
-    @property
-    def session_state(self) -> dict[str, Any]:
-        return dict(
-            model=self.model_config_data,
-            arena_interface=self.arena_interface_config_data,
-            panel_interface=self.panel_interface_config_data,
-            manager=self.manager_config_data,
-            recorder=self.recorder_config_data,
-        )
+    def config_data(self) -> Any:
+        return self._config_data
 
     async def pre_arena_callback(self, *args: Any, debater_name: DebaterName) -> None:
         pass
@@ -141,89 +114,27 @@ class Session:
     async def setup(self) -> None:
         self._session_id: str = uuid4().hex
         self.recorder_hub.create(self.session_id)
+        self.callback_hub.create(self.session_id)
 
-        async with TaskGroup() as tg:
-            tg.create_task(
-                self.process_hub.arena_interface.create_session(
-                    self.session_id, callback=self._in_arena_callback
-                )
-            )
+        self._manager_client: ManagerClient = await self.process_hub.create_session(
+            self.session_id,
+            pre_arena_callback=self._pre_arena_callback,
+            in_arena_callback=self._in_arena_callback,
+            post_arena_callback=self._post_arena_callback,
+            pre_panel_callback=self._pre_panel_callback,
+            in_panel_callback=self._in_panel_callback,
+            post_panel_callback=self._post_panel_callback,
+        )
 
-            tg.create_task(self.process_hub.model.create_session(self.session_id))
+        self._load_config()
+        await self._refresh_config()
 
-            tg.create_task(
-                self.process_hub.panel_interface.create_session(
-                    self.session_id, callback=self._in_panel_callback
-                )
-            )
-
-            tg.create_task(
-                self.process_hub.manager.create_session(
-                    self.session_id,
-                    pre_arena_callback=self._pre_arena_callback,
-                    post_arena_callback=self._post_arena_callback,
-                    pre_panel_callback=self._pre_panel_callback,
-                    post_panel_callback=self._post_panel_callback,
-                )
-            )
-
-        async with TaskGroup() as tg:
-            tg.create_task(
-                self.process_hub.panel_interface.set_model(
-                    self.session_id, server_info=self.process_hub.model.server_info
-                )
-            )
-
-            tg.create_task(
-                self.process_hub.manager.set_arena(
-                    self.session_id, server_info=self.process_hub.arena_interface.server_info
-                )
-            )
-
-            tg.create_task(
-                self.process_hub.manager.set_panel(
-                    self.session_id, server_info=self.process_hub.panel_interface.server_info
-                )
-            )
-
-        self._manager_client = ManagerClient(session_id=self.session_id)
-        self._manager_client.set_server_info(self.process_hub.manager.server_info)
-
-        self.arena_callback_arranger_manager.create(self.session_id)
-        self.panel_callback_arranger_manager.create(self.session_id)
-
-        self._load_model_config()
-        self._load_arena_interface_config()
-        self._load_panel_interface_config()
-        self._load_manager_config()
-        self._load_recorder_config()
-
-        async with TaskGroup() as tg:
-            tg.create_task(self._refresh_model_config())
-            tg.create_task(self._refresh_arena_interface_config())
-            tg.create_task(self._refresh_panel_interface_config())
-            tg.create_task(self._refresh_manager_config())
-            tg.create_task(self._refresh_recorder_config())
-
-    async def set_session_state(self, state: dict[str, Any]) -> None:
-        self._model_config_data = state["model"]
-        self._arena_interface_config_data = state["arena_interface"]
-        self._panel_interface_config_data = state["panel_interface"]
-        self._manager_config_data = state["manager"]
-        self._recorder_config_data = state["recorder"]
+    async def set_config_data(self, config_data: dict[str, Any]) -> None:
+        self._config_data: dict[str, Any] = config_data
         await self.update_config()
 
     async def update_config(self) -> bool:
-        async with TaskGroup() as tg:
-            update_tasks: tuple[Task[bool], ...] = (
-                tg.create_task(self._update_model_config()),
-                tg.create_task(self._update_arena_interface_config()),
-                tg.create_task(self._update_panel_interface_config()),
-                tg.create_task(self._update_manager_config()),
-                tg.create_task(self._update_recorder_config()),
-            )
-
-        if dirty := any(task.result() for task in update_tasks):
+        if dirty := await self._update_config():
             await self._load_motion(None)
 
         return dirty
@@ -242,10 +153,7 @@ class Session:
 
         with self._bg_task(is_debate=True):
             self._record_dirty = True
-
-            self._panel_done_countdown = self.config_buffer_hub.manager.get_verdict_count(
-                self.session_id
-            )
+            self._panel_done_countdown = self.config_buffer.get_verdict_count(self.session_id)
 
             try:
                 async with TaskGroup() as tg:
@@ -287,90 +195,22 @@ class Session:
     async def close(self) -> None:
         await self._manager_client.close()
 
-    def _load_model_config(self) -> None:
+    def _load_config(self) -> None:
         with self._bg_task():
-            self._model_config_data: Any = self.config_buffer_hub.model.get_config_data(
-                self.session_id
-            )
+            self._config_data = self.config_buffer.get_config_data(self.session_id)
 
-    def _load_arena_interface_config(self) -> None:
+    async def _refresh_config(self) -> None:
         with self._bg_task():
-            self._arena_interface_config_data: Any = (
-                self.config_buffer_hub.arena_interface.get_config_data(self.session_id)
-            )
+            await self.config_buffer.configure(self.session_id)
 
-    def _load_panel_interface_config(self) -> None:
+    async def _update_config(self) -> bool:
         with self._bg_task():
-            self._panel_interface_config_data: Any = (
-                self.config_buffer_hub.panel_interface.get_config_data(self.session_id)
-            )
-
-    def _load_manager_config(self) -> None:
-        with self._bg_task():
-            self._manager_config_data: Any = self.config_buffer_hub.manager.get_config_data(
-                self.session_id
-            )
-
-    def _load_recorder_config(self) -> None:
-        with self._bg_task():
-            self._recorder_config_data: Any = self.config_buffer_hub._recorder.get_config_data(
-                self.session_id
-            )
-
-    async def _refresh_model_config(self) -> None:
-        with self._bg_task():
-            await self.config_buffer_hub.model.configure(self.session_id)
-
-    async def _refresh_arena_interface_config(self) -> None:
-        with self._bg_task():
-            await self.config_buffer_hub.arena_interface.configure(self.session_id)
-
-    async def _refresh_panel_interface_config(self) -> None:
-        with self._bg_task():
-            await self.config_buffer_hub.panel_interface.configure(self.session_id)
-
-    async def _refresh_manager_config(self) -> None:
-        with self._bg_task():
-            await self.config_buffer_hub.manager.configure(self.session_id)
-
-    async def _refresh_recorder_config(self) -> None:
-        with self._bg_task():
-            await self.config_buffer_hub.recorder.configure(self.session_id)
-
-    async def _update_model_config(self) -> bool:
-        with self._bg_task():
-            return await self.config_buffer_hub.model.configure(
-                self.session_id, config_data=self.model_config_data
-            )
-
-    async def _update_arena_interface_config(self) -> bool:
-        with self._bg_task():
-            return await self.config_buffer_hub.arena_interface.configure(
-                self.session_id, config_data=self.arena_interface_config_data
-            )
-
-    async def _update_panel_interface_config(self) -> bool:
-        with self._bg_task():
-            return await self.config_buffer_hub.panel_interface.configure(
-                self.session_id, config_data=self.panel_interface_config_data
-            )
-
-    async def _update_manager_config(self) -> bool:
-        with self._bg_task():
-            return await self.config_buffer_hub.manager.configure(
-                self.session_id, config_data=self.manager_config_data
-            )
-
-    async def _update_recorder_config(self) -> bool:
-        with self._bg_task():
-            return await self.config_buffer_hub.recorder.configure(
-                self.session_id, config_data=self.recorder_config_data
-            )
+            return await self.config_buffer.configure(self.session_id, config_data=self.config_data)
 
     async def _load_motion(self, motion_id: str | None, /) -> None:
         with self._bg_task():
             if motion_id is not None:
-                await self.process_hub.arena_interface.load(
+                await self.process_hub.arena_load(
                     self.session_id, speeches=self.resource_hub.speech.load(motion_id)
                 )
 
@@ -384,10 +224,8 @@ class Session:
     def _init_debate(self) -> None:
         with self._bg_task():
             self._running_debate = None
-
             self.recorder.reset()
-            self.arena_callback_arranger_manager.reset(self.session_id)
-            self.panel_callback_arranger_manager.reset(self.session_id)
+            self.callback_hub.reset(self.session_id)
 
     def _dump_record(self, name: str, /) -> Path:
         with self._bg_task():
@@ -399,7 +237,7 @@ class Session:
             if debater_name == "":
                 self._all_arena_callback_done.set()
 
-        self.arena_callback_arranger_manager.put(
+        self.callback_hub.arena.put(
             self.session_id,
             wrapped(),
             stage=CallbackStage.PRE,
@@ -411,7 +249,7 @@ class Session:
         async def wrapped() -> None:
             await self.in_arena_callback(chunk, debater_name=debater_name)
 
-        self.arena_callback_arranger_manager.put(
+        self.callback_hub.arena.put(
             self.session_id,
             wrapped(),
             stage=CallbackStage.IN,
@@ -424,7 +262,7 @@ class Session:
             await self.post_arena_callback(*args, debater_name=debater_name)
             self.recorder.add_speech(speech=args[0])
 
-        self.arena_callback_arranger_manager.put(
+        self.callback_hub.arena.put(
             self.session_id, wrapped(), stage=CallbackStage.POST, key=debater_name
         )
 
@@ -435,7 +273,7 @@ class Session:
             await self.pre_panel_callback(*args, action=action, dimension_name=dimension_name)
             self.recorder.pre_add_comment(action=action, dimension_name=dimension_name)
 
-        self.panel_callback_arranger_manager.put(
+        self.callback_hub.panel.put(
             self.session_id, wrapped(), stage=CallbackStage.PRE, key=(action, dimension_name)
         )
 
@@ -452,7 +290,7 @@ class Session:
                 action=action, dimension_name=dimension_name, chat_chunk=chat_chunk
             )
 
-        self.panel_callback_arranger_manager.put(
+        self.callback_hub.panel.put(
             self.session_id,
             wrapped(),
             stage=CallbackStage.IN,
@@ -472,7 +310,7 @@ class Session:
                 if self._panel_done_countdown == 0:
                     self._all_panel_callback_done.set()
 
-        self.panel_callback_arranger_manager.put(
+        self.callback_hub.panel.put(
             self.session_id, wrapped(), stage=CallbackStage.POST, key=(action, dimension_name)
         )
 
