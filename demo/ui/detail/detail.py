@@ -31,7 +31,7 @@ class DetailUI(BaseUI[Iterable[DimensionName] | None, Mapping[DebaterName, str] 
         super().__init__()
 
         self._pages_info: list[PageInfo] = [
-            PageInfo(PanelAction.SUMMARIZE, "General", "gavel", PageFlag.MERGED | PageFlag.FINAL),
+            PageInfo(PanelAction.SUMMARIZE, "Summary", "gavel", PageFlag.MERGED | PageFlag.FINAL),
             PageInfo(JudgeAction.JUDGE, "Dimensional", "grid_view", PageFlag.FINAL),
             PageInfo(JudgeAction.UPDATE, "Analyses", "pending"),
         ]

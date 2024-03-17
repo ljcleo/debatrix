@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+from nicegui import ui
+
 from debatrix.core.common import DimensionName
 
 from ..base import BaseUI
@@ -13,21 +15,30 @@ class CommentUI(BaseUI[[]]):
 
     def __post_init__(self) -> None:
         super().__init__()
-
-        suffix: str = self.dimension_name.capitalize()
-        if suffix == "":
-            suffix = "Summary"
-
+        suffix: str = "Summary" if self.dimension_name == "" else self.dimension_name.capitalize()
         self._display_name: str = f"AI_{suffix}"
 
     def init_ui(self) -> None:
-        self._cht_comment = ChatBox()
+        with ui.dialog() as self._dlg_comment:
+            self._cht_comment = ChatBox(
+                title=(
+                    (
+                        "Panel Main Judge"
+                        if self.dimension_name == ""
+                        else f"{self.dimension_name.capitalize()} Judge"
+                    ),
+                    None,
+                )
+            )
 
     def set_visibility(self, visible: bool, /) -> None:
         self._cht_comment.set_visibility(visible)
 
     def reset(self) -> None:
         self._cht_comment.reset()
+
+    async def show(self) -> None:
+        await self._dlg_comment
 
     def start_judge(self) -> None:
         self._cht_comment.insert(["The judge is ready."], stamp="Before debate")

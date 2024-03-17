@@ -118,6 +118,7 @@ class DimensionalPageUI(PageUI):
             for dimension in self._dimensions_name:
                 self.add_block(
                     dimension,
+                    title=(f"{dimension.capitalize()} Judge", None),
                     extra_classes=f"col-span-{n_col} md:col-span-{max(n_dim, 2)} 2xl:col-span-2",
                 )
 
@@ -133,7 +134,9 @@ class DimensionalPageUI(PageUI):
 class MergedPageUI(PageUI):
     def init_ui(self) -> None:
         with ui.grid(columns=1).classes("w-full h-full min-h-[64rem] md:min-h-[40rem]"):
-            self.add_block("main", extra_classes="col-span-2 md:col-span-1")
+            self.add_block(
+                "main", title=("Panel Main Judge", None), extra_classes="col-span-2 md:col-span-1"
+            )
 
     def get_block_key(self, action: AllPanelActions, dimension_name: DimensionName, /) -> str:
         return "main"

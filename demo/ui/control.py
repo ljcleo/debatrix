@@ -25,15 +25,18 @@ class ControlUI(BaseUI[Session, ui.dialog, ui.dialog]):
         async def hdl_btn_reset() -> None:
             await session.reset_debate()
 
+        async def hdl_btn_help() -> None:
+            ui.notify("not implemented yet")
+
+        async def hdl_btn_save() -> None:
+            await session.save_record()
+
         async def hdl_btn_start() -> None:
             await session.reset_debate()
             await session.start_debate()
 
         async def hdl_btn_stop() -> None:
             await session.stop_debate()
-
-        async def hdl_btn_save() -> None:
-            await session.save_record()
 
         with ui.grid(columns=6).classes("w-full"):
             ui.select(
@@ -49,11 +52,11 @@ class ControlUI(BaseUI[Session, ui.dialog, ui.dialog]):
             )
 
             ui.button("Config", on_click=hdl_btn_config, icon="settings").classes(
-                "col-span-3"
+                "col-span-3 sm:col-span-2 xl:col-span-3 2xl:col-span-2"
             ).bind_enabled_from(session, target_name="is_config_enabled")
 
             ui.button("Detail", on_click=hdl_btn_detail, icon="open_in_new").classes(
-                "col-span-3"
+                "col-span-3 sm:col-span-2 xl:col-span-3 2xl:col-span-2"
             ).bind_enabled_from(session, target_name="is_debate_loaded")
 
             ui.button("Reset", on_click=hdl_btn_reset, icon="restart_alt").classes(
@@ -64,14 +67,18 @@ class ControlUI(BaseUI[Session, ui.dialog, ui.dialog]):
                 "col-span-3 sm:col-span-2 xl:col-span-3 2xl:col-span-2"
             ).bind_enabled_from(session, target_name="is_control_enabled")
 
+            ui.button("Help", on_click=hdl_btn_help, color="info", icon="open_in_new").classes(
+                "col-span-3 sm:col-span-2 xl:col-span-3 2xl:col-span-2"
+            )
+
             ui.button(
                 "Start", on_click=hdl_btn_start, color="positive", icon="play_circle"
-            ).classes("col-span-6 sm:col-span-2 xl:col-span-6 2xl:col-span-2").bind_enabled_from(
+            ).classes("col-span-3 sm:col-span-2 xl:col-span-3 2xl:col-span-2").bind_enabled_from(
                 session, target_name="is_control_enabled"
             ).bind_visibility_from(
                 session, target_name="is_start_stop_toggled", backward=not_
             )
 
             ui.button("Stop", on_click=hdl_btn_stop, color="negative", icon="stop_circled").classes(
-                "col-span-6 2xl:col-span-2"
+                "col-span-3 sm:col-span-2 xl:col-span-3 2xl:col-span-2"
             ).bind_visibility_from(session, target_name="is_start_stop_toggled")
