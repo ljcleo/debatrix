@@ -17,6 +17,7 @@ class UIBasedPlatform(BasePlatform[UIBasedSession]):
     _: KW_ONLY
     ui_host: str = "0.0.0.0"
     ui_port: int = 58000
+    enable_full_config_ui: bool = False
 
     def __post_init__(self, resource_root: Path) -> None:
         super().__post_init__(resource_root)
@@ -57,6 +58,7 @@ class UIBasedPlatform(BasePlatform[UIBasedSession]):
             recorder_hub=self._recorder_hub,
             config_buffer=self._config_buffer,
             callback_hub=self._callback_hub,
+            enable_full_config_ui=self.enable_full_config_ui,
         )
 
     async def _register_ui(self) -> None:

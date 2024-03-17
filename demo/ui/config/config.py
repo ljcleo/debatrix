@@ -1,16 +1,28 @@
+from dataclasses import dataclass
 from typing import Any
 
 from nicegui import ui
-from nicegui.events import ValueChangeEventArguments
 
 from debatrix.platform import Session
 
 from ..base import BaseUI
+from .full import FullConfigUI
 from .util import VALIDATIONS
 
 
+@dataclass(kw_only=True)
 class ConfigUI(BaseUI[Session]):
+    enable_full: bool
+
+    def __post_init__(self) -> None:
+        super().__init__()
+        self._full = FullConfigUI()
+
     def init_ui(self, session: Session) -> None:
+        if self.enable_full:
+            self._full.register_ui(session)
+            return
+
         config: dict[str, Any] = session.config_data
 
         with ui.expansion("Backend Model", icon="smart_toy", group="config", value=True).classes(
@@ -19,7 +31,7 @@ class ConfigUI(BaseUI[Session]):
             openai_config: dict[str, Any] = config["model"]["chat_config"]["openai_config"]
 
             ui.select(
-                options=["gpt-3.5-turbo-0125", "gpt-4-preview-0125"], label="OpenAI Model"
+                options=["gpt-3.5-turbo-0125", "gpt-4-0125-preview"], label="OpenAI Model"
             ).classes("w-full").bind_value(openai_config, target_name="model")
 
             ui.input(
@@ -33,16 +45,25 @@ class ConfigUI(BaseUI[Session]):
         with ui.expansion("Debate Judge", icon="grading", group="config").classes("w-full"):
             judge_config: dict[str, Any] = config["panel"]["judge_config"]
 
-            def toggle_speech_analysis(e: ValueChangeEventArguments) -> None:
-                judge_config["iterate_analysis"] &= bool(e.value)
-
-            ui.switch(
-                "Analyze Speech for Final Judgment", on_change=toggle_speech_analysis
-            ).classes("w-full").bind_value(judge_config, target_name="analyze_speech")
-
-            ui.switch("Iterate Content Analyses Across Speeches").classes("w-full").bind_value(
-                judge_config, target_name="iterate_analysis"
-            ).bind_enabled_from(judge_config, target_name="analyze_speech")
+            with ui.select(
+                options=["gpt", "non_iter", "debatrix"],
+                value=(
+                    "gpt"
+                    if not judge_config["analyze_speech"]
+                    else "debatrix" if judge_config["iterate_analysis"] else "non_iter"
+                ),
+            ).classes("w-full").bind_value_to(
+                judge_config, target_name="analyze_speech", forward=lambda x: x != "gpt"
+            ).bind_value_to(
+                judge_config, target_name="iterate_analysis", forward=lambda x: x == "debatrix"
+            ):
+                with ui.tooltip():
+                    ui.markdown(
+                        """- `gpt`: No speech analysis for debate judgment
+- `non_iter`: Provide raw previous speeches instead of their analyses for new speech analysis
+- `debatrix`: Iterative speech analysis with previous analyses
+"""
+                    )
 
             action_title: dict[str, str] = {
                 "update": "Dimensional Speech Analysis Prompt",

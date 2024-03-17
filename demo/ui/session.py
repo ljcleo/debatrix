@@ -2,7 +2,7 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
-from nicegui import ui
+from nicegui import app, ui
 
 from debatrix.core.action import AllPanelActions
 from debatrix.core.common import DebateInfo, DebaterName, DimensionName
@@ -13,15 +13,17 @@ from .base import BaseUI
 from .config import ConfigUI
 from .control import ControlUI
 from .detail import DetailUI
+from .intro import IntroUI
+from .help import HelpUI
 from .verdict import VerdictUI
 
 
-class SessionUI(BaseUI[Session]):
-    def init_ui(self, session: Session) -> None:
+class SessionUI(BaseUI[[Session, bool]]):
+    def init_ui(self, session: Session, enable_full_config_ui: bool) -> None:
         ui.query(".nicegui-content").classes("h-screen min-h-[72rem] xl:min-h-[48rem]")
 
         with ui.dialog() as dlg_config, ui.card().classes("w-full h-3/4 gap-y-0 min-h-[24rem]"):
-            ConfigUI().register_ui(session)
+            ConfigUI(enable_full=enable_full_config_ui).register_ui(session)
 
         with ui.dialog().props("full-width full-height") as dlg_detail, ui.card().classes(
             "gap-y-0"
@@ -29,17 +31,29 @@ class SessionUI(BaseUI[Session]):
             self._ui_detail = DetailUI()
             self._ui_detail.register_ui(None, None)
 
+        with ui.dialog() as dlg_help, ui.card().classes("w-full"):
+            HelpUI().register_ui()
+
         with ui.grid(columns=3).classes("w-full h-full lg:px-16 lg:py-8"):
             with ui.card().classes("col-span-3 xl:col-span-1 h-full items-center"):
                 with ui.column().classes("w-full grow"):
                     self._ui_arena = ArenaUI()
                     self._ui_arena.register_ui()
 
-                ControlUI().register_ui(session, dlg_config, dlg_detail)
+                ControlUI().register_ui(session, dlg_config, dlg_detail, dlg_help)
 
             with ui.card().classes("col-span-3 xl:col-span-2 h-full gap-y-0"):
                 self._ui_verdict = VerdictUI()
                 self._ui_verdict.register_ui(None, None)
+
+        if app.storage.user.get("need_intro", True):
+            with ui.dialog().props("persistent") as dlg_intro, ui.card().classes("w-full"):
+                IntroUI().init_ui(session, dlg_intro)
+
+            async def open_intro() -> None:
+                await dlg_intro
+
+            ui.timer(0.5, callback=open_intro, once=True)
 
     def reset(self, *, debate_info: DebateInfo) -> None:
         self._ui_arena.reset(debate_info=debate_info)

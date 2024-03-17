@@ -8,8 +8,10 @@ from debatrix.platform import Session
 from .base import BaseUI
 
 
-class ControlUI(BaseUI[Session, ui.dialog, ui.dialog]):
-    def init_ui(self, session: Session, dlg_config: ui.dialog, dlg_detail: ui.dialog) -> None:
+class ControlUI(BaseUI[Session, ui.dialog, ui.dialog, ui.dialog]):
+    def init_ui(
+        self, session: Session, dlg_config: ui.dialog, dlg_detail: ui.dialog, dlg_help: ui.dialog
+    ) -> None:
         async def hdl_sel_debate(e: ValueChangeEventArguments) -> None:
             await session.select_debate(e.value)
 
@@ -26,7 +28,7 @@ class ControlUI(BaseUI[Session, ui.dialog, ui.dialog]):
             await session.reset_debate()
 
         async def hdl_btn_help() -> None:
-            ui.notify("not implemented yet")
+            await dlg_help
 
         async def hdl_btn_save() -> None:
             await session.save_record()
@@ -67,7 +69,7 @@ class ControlUI(BaseUI[Session, ui.dialog, ui.dialog]):
                 "col-span-3 sm:col-span-2 xl:col-span-3 2xl:col-span-2"
             ).bind_enabled_from(session, target_name="is_control_enabled")
 
-            ui.button("Help", on_click=hdl_btn_help, color="info", icon="open_in_new").classes(
+            ui.button("Help", on_click=hdl_btn_help, color="info", icon="help").classes(
                 "col-span-3 sm:col-span-2 xl:col-span-3 2xl:col-span-2"
             )
 

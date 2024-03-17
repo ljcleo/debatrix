@@ -17,6 +17,7 @@ class ScriptArgs:
 
     ui_host: str = "0.0.0.0"
     ui_port: int = 58000
+    enable_full_config_ui: bool = False
 
 
 if __name__ in {"__main__", "__mp_main__"}:
@@ -41,6 +42,10 @@ if __name__ in {"__main__", "__mp_main__"}:
 
     arg_parser.add_argument("-i", "--ui-host", default="0.0.0.0", help="set UI demo host")
     arg_parser.add_argument("-p", "--ui-port", default=58000, type=int, help="set UI demo port")
+
+    arg_parser.add_argument(
+        "-f", "--enable-full-config-ui", action="store_true", help="enable full config UI"
+    )
 
     args: ScriptArgs = arg_parser.parse_args(namespace=ScriptArgs())
 
@@ -74,6 +79,7 @@ if __name__ in {"__main__", "__mp_main__"}:
             fast_api_log_info=args.log_server_info,
             ui_host=args.ui_host,
             ui_port=args.ui_port,
+            enable_full_config_ui=args.enable_full_config_ui,
         ).serve()
     )
 
