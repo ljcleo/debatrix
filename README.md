@@ -12,19 +12,19 @@ Debatrix runs on Python 3.11 and above. We recommend using
 [Miniconda](https://docs.conda.io/en/latest/miniconda.html) to set up a virtual
 environment:
 
-```{bash}
+```Shell
 conda create -n debatrix python=3.11
 ```
 
 To run the batch judging script, the following packages are required:
 
-```{batch}
+```Shell
 pip install langchain openai tiktoken
 ```
 
 To run the UI demo, [NiceGUI](https://nicegui.io) is also needed:
 
-```{bash}
+```Shell
 pip install nicegui
 ```
 
@@ -34,7 +34,7 @@ An OpenAI API key is required to call ChatGPT or GPT-4 in Debatrix; fill it in
 the `api_key` option in `preset/example/config/model.yml`. Base URL and proxies
 can also be set on demand.
 
-```{yaml}
+```YAML
 # preset/example/config/model.yml
 
 # ... (there are two openai_config option sets; set up both of them)
@@ -50,7 +50,7 @@ Now, use `run_batch.py` to judge debates in the command line. For example, to
 judge the first example debate three times, including multi-dimensional summary,
 using ChatGPT as the backbone:
 
-```{bash}
+```Shell
 python run_batch.py -s -l chatgpt -r test example debatrix 0 1 3
 ```
 
@@ -64,7 +64,7 @@ Run `python run_batch.py -h` to see all available command arguments.
 
 Use `run_demo.py` to launch the Debatrix UI demo:
 
-```{bash}
+```Shell
 python run_demo.py -i example ANY_SECRET_STRING_YOU_LIKE
 ```
 
@@ -117,7 +117,7 @@ The PanelBench dataset is released in the
 [Release Page](https://github.com/ljcleo/Debatrix/releases/tag/v0.1) of this
 repository. It has the following structure:
 
-```{plain}
+```Text
 PanelBench.tar.gz
 ├── data
 │   ├── BP-Competition.tar.gz
@@ -164,7 +164,7 @@ folder.
 
 If you find our Debatrix or PanelBench useful, please consider citing our paper:
 
-```{bibtex}
+```BibTeX
 @article{liang2024debatrix,
   title={Debatrix: Multi-dimensinal Debate Judge with Iterative Chronological Analysis Based on LLM},
   author={Liang, Jingcong and Ye, Rong and Han, Meng and Lai, Ruofei and Zhang, Xinyu and Huang, Xuanjing and Wei, Zhongyu},
