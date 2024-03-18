@@ -1,6 +1,7 @@
-# Debatrix
+# Debatrix: LLM-based Multi-dimensinal Debate Judge with Iterative Chronological Analysis
 
-LLM-based Multi-dimensinal Debate Judge with Iterative Chronological Analysis
+This is the code repository of *Debatrix: Multi-dimensinal Debate Judge with
+Iterative Chronological Analysis based on LLM*.
 
 - [Homepage](https://github.com/ljcleo/Debatrix)
 - [Paper](https://arxiv.org/abs/2403.08010)
