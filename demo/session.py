@@ -13,6 +13,7 @@ from .ui import SessionUI
 
 @dataclass(kw_only=True)
 class UIBasedSession(Session):
+    enable_intro: bool
     enable_full_config_ui: bool
 
     def __post_init__(self) -> None:
@@ -71,7 +72,7 @@ class UIBasedSession(Session):
         self.cache_session_state()
 
         if updated:
-            self._ui.refresh_ui(self, self.enable_full_config_ui)
+            self._ui.refresh_ui(self, False, self.enable_full_config_ui)
 
         return updated
 
@@ -111,7 +112,7 @@ class UIBasedSession(Session):
         return target
 
     def register_ui(self) -> None:
-        self._ui.register_ui(self, self.enable_full_config_ui)
+        self._ui.register_ui(self, self.enable_intro, self.enable_full_config_ui)
 
     def cache_session_state(self) -> None:
         app.storage.user["state"] = self.config_data

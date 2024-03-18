@@ -49,7 +49,9 @@ class ControlUI(BaseUI[Session, ui.dialog, ui.dialog, ui.dialog]):
                 label="Motion",
                 on_change=hdl_sel_debate,
                 clearable=True,
-            ).props('options-html behavior="dialog"').classes("col-span-6").bind_enabled_from(
+            ).props('options-html behavior="dialog"').classes("col-span-6").bind_value_from(
+                session, target_name="cur_motion"
+            ).bind_enabled_from(
                 session, target_name="is_config_enabled"
             )
 

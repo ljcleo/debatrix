@@ -18,8 +18,8 @@ from .help import HelpUI
 from .verdict import VerdictUI
 
 
-class SessionUI(BaseUI[[Session, bool]]):
-    def init_ui(self, session: Session, enable_full_config_ui: bool) -> None:
+class SessionUI(BaseUI[[Session, bool, bool]]):
+    def init_ui(self, session: Session, enable_intro: bool, enable_full_config_ui: bool) -> None:
         ui.query(".nicegui-content").classes("h-screen min-h-[72rem] xl:min-h-[48rem]")
 
         with ui.dialog() as dlg_config, ui.card().classes("w-full h-3/4 gap-y-0 min-h-[24rem]"):
@@ -46,7 +46,7 @@ class SessionUI(BaseUI[[Session, bool]]):
                 self._ui_verdict = VerdictUI()
                 self._ui_verdict.register_ui(None, None)
 
-        if app.storage.user.get("need_intro", True):
+        if enable_intro and app.storage.user.get("need_intro", True):
             with ui.dialog().props("persistent") as dlg_intro, ui.card().classes("w-full"):
                 IntroUI().init_ui(session, dlg_intro)
 

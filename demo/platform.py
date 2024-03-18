@@ -1,6 +1,7 @@
 from asyncio import CancelledError, Task, TaskGroup
-from dataclasses import KW_ONLY, dataclass
+from dataclasses import KW_ONLY, InitVar, dataclass
 from pathlib import Path
+from random import Random
 from socket import create_server, socket
 
 from fastapi import FastAPI
@@ -17,16 +18,28 @@ class UIBasedPlatform(BasePlatform[UIBasedSession]):
     _: KW_ONLY
     ui_host: str = "0.0.0.0"
     ui_port: int = 58000
+
+    enable_intro: bool = False
     enable_full_config_ui: bool = False
 
-    def __post_init__(self, resource_root: Path) -> None:
+    storage_secret: InitVar[str] = ""
+
+    def __post_init__(self, resource_root: Path, storage_secret: str) -> None:
         super().__post_init__(resource_root)
 
+        rng = Random(storage_secret)
+        storage_secret = "".join([chr(rng.randint(33, 126)) for _ in range(16)])
+        print("Using storage secret:", storage_secret)
+
         ui.page("/")(self._register_ui)
+        app.on_startup(app.storage.clear)
         app.on_exception(lambda x: ui.notify(f"Internal Error: {repr(x)}", type="negative"))
 
         gui_app = FastAPI(debug=self.fast_api_debug)
-        ui.run_with(gui_app, title="Debatrix Demo", favicon="♎", dark=None, storage_secret="COYG!")
+
+        ui.run_with(
+            gui_app, title="Debatrix Demo", favicon="♎", dark=None, storage_secret=storage_secret
+        )
 
         self._server = Server(
             Config(gui_app, log_level="info" if self.fast_api_log_info else "warning")
@@ -58,6 +71,7 @@ class UIBasedPlatform(BasePlatform[UIBasedSession]):
             recorder_hub=self._recorder_hub,
             config_buffer=self._config_buffer,
             callback_hub=self._callback_hub,
+            enable_intro=self.enable_intro,
             enable_full_config_ui=self.enable_full_config_ui,
         )
 

@@ -47,6 +47,7 @@ class ConfigUI(BaseUI[Session]):
 
             with ui.select(
                 options=["gpt", "non_iter", "debatrix"],
+                label="Judge Framework",
                 value=(
                     "gpt"
                     if not judge_config["analyze_speech"]
