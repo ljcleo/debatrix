@@ -4,7 +4,7 @@ LLM-based Multi-dimensinal Debate Judge with Iterative Chronological Analysis
 
 - [Homepage](https://github.com/ljcleo/Debatrix)
 - [Paper](https://arxiv.org/abs/2403.08010)
-- [Dataset](https://github.com/ljcleo/Debatrix/releases/tag/v0.1)
+- [Dataset (PanelBench)](https://github.com/ljcleo/Debatrix/releases/tag/v0.1)
 
 ## Setup
 
@@ -19,7 +19,7 @@ conda create -n debatrix python=3.11
 To run the batch judging script, the following packages are required:
 
 ```Shell
-pip install langchain openai tiktoken
+pip install fastapi jinja2 langchain openai tiktoken uvicorn
 ```
 
 To run the UI demo, [NiceGUI](https://nicegui.io) is also needed:
