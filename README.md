@@ -8,8 +8,6 @@ LLM-based Multi-dimensinal Debate Judge with Iterative Chronological Analysis
 
 ## Setup
 
----
-
 Debatrix runs on Python 3.11 and above. We recommend using
 [Miniconda](https://docs.conda.io/en/latest/miniconda.html) to set up a virtual
 environment:
@@ -31,8 +29,6 @@ pip install nicegui
 ```
 
 ## Batch Judging
-
----
 
 An OpenAI API key is required to call ChatGPT or GPT-4 in Debatrix; fill it in
 the `api_key` option in `preset/example/config/model.yml`. Base URL and proxies
@@ -64,7 +60,7 @@ will be printed on the screen. You can find debate records in
 
 Run `python run_batch.py -h` to see all available command arguments.
 
-### UI Demo
+## UI Demo
 
 Use `run_demo.py` to launch the Debatrix UI demo:
 
@@ -91,8 +87,6 @@ button.
 
 ## Screenshots
 
----
-
 ### Before/After Debate
 
 ![Before Debate](screenshot/before_debate.png)
@@ -113,20 +107,18 @@ button.
 ![Speech Analysis Detail](screenshot/update_detail.png)
 ![Dimensional Verdict Detail](screenshot/judge_detail.png)
 
-## Help Dialog
+### Help Dialog
 
 ![Help Dialog](screenshot/help.png)
 
 ## Dataset (PanelBench)
 
----
-
-The PanelBench data is released in the
+The PanelBench dataset is released in the
 [Release Page](https://github.com/ljcleo/Debatrix/releases/tag/v0.1) of this
 repository. It has the following structure:
 
 ```{plain}
-PanelBench
+PanelBench.tar.gz
 ├── data
 │   ├── BP-Competition.tar.gz
 │   │   ├── gold
@@ -167,3 +159,16 @@ move the folder to the one extracted to `preset` in the previous section, and
 rename it to `config`. Copy the other configs (`model.yml`, `manager.yml`,
 `recorder.yml`) from `preset/example/config` in Debatrix to the renamed `config`
 folder.
+
+## Citation
+
+If you find our Debatrix or PanelBench useful, please consider citing our paper:
+
+```{bibtex}
+@article{liang2024debatrix,
+  title={Debatrix: Multi-dimensinal Debate Judge with Iterative Chronological Analysis Based on LLM},
+  author={Liang, Jingcong and Ye, Rong and Han, Meng and Lai, Ruofei and Zhang, Xinyu and Huang, Xuanjing and Wei, Zhongyu},
+  journal={arXiv preprint arXiv:2403.08010},
+  year={2024}
+}
+```
