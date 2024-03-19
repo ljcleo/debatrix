@@ -6,7 +6,7 @@ from ..core.common import DimensionInfo
 Dimensions = tuple[DimensionInfo, ...]
 
 
-@dataclass
+@dataclass(frozen=True, kw_only=True)
 class ManagerConfig:
     should_summarize: bool
     dimensions: Dimensions

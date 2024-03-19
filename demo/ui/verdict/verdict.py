@@ -44,7 +44,6 @@ class VerdictUI(BaseUI[Iterable[DimensionName] | None, Mapping[DebaterName, str]
     ) -> None:
         if action == JudgeAction.UPDATE:
             speech: Speech = args[0]
-
             self._ui_winner.start_analysis(dimension_name=dimension_name, speech_index=speech.index)
 
             self._ui_score.start_analysis(
@@ -71,7 +70,9 @@ class VerdictUI(BaseUI[Iterable[DimensionName] | None, Mapping[DebaterName, str]
     def post_panel_callback(
         self, *args: Any, action: AllPanelActions, dimension_name: DimensionName
     ) -> None:
-        if action in (JudgeAction.JUDGE, PanelAction.SUMMARIZE):
+        if action == JudgeAction.UPDATE:
+            self._ui_winner.end_analysis(dimension_name=dimension_name)
+        elif action in (JudgeAction.JUDGE, PanelAction.SUMMARIZE):
             verdict: Verdict = args[0]
             self._ui_winner.update_verdict(dimension_name=dimension_name, verdict=verdict)
             self._ui_score.update_verdict(dimension_name=dimension_name, verdict=verdict)

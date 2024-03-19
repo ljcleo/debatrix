@@ -121,7 +121,7 @@ judge_config:
 
             {% if is_content_analyses %}{{ dimension.prompt.judge_by_analysis }}{% else %}{{ dimension.prompt.judge_debate }}{% endif %}
 
-            Judge the debaters ({{ info.all_debaters_info|map(attribute='name')|join('/') }}) individually. Ties are {% if dimension.allow_tie %}possible{% else %}not allowed{% endif %}.
+            Judge the {{info.all_debaters_info|length}} debaters ({{ info.all_debaters_info|map(attribute='name')|join('/') }}) individually. {% if dimension.allow_tie %}Ties are possible, so if more than one debater gives the best performance, announce a tie, otherwise award one and only one individual debater that performs the best.{% else %}Ties are not allowed, so you should award one and only one individual debater that performs the best.{% endif %}
 
             Please think critically before responding.
         - role: human
@@ -157,7 +157,7 @@ panel_config:
           content: |
             Now the debate ends. Your team of specialized judges, each assigned to a dimension, have given their judgments according to their assigned dimension respectively. You are given the dimensions and corresponding judgments from your team.
 
-            Please summarize the dimensional judgments according to their weights into a general judgment. Rank the debaters ({{ info.all_debaters_info|map(attribute='name')|join('/') }}) individually; award the debater ranked the highest --- the debater that outperforms all other debaters in the debate.
+            Please summarize the dimensional judgments according to their weights into a general judgment. Rank the {{ info.all_debaters_info|length }} debaters ({{ info.all_debaters_info|map(attribute='name')|join('/') }}) individually; award one and only one individual debater that performs the best.
 
             Please think critically before responding.
         - role: human

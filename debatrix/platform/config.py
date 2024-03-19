@@ -7,7 +7,7 @@ from ..panel.interface.config import PanelInterfaceConfig
 from .record.config import RecorderConfig
 
 
-@dataclass(kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class Config:
     model: ModelConfig
     arena: ArenaInterfaceConfig

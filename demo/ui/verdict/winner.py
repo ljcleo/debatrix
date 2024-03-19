@@ -1,6 +1,7 @@
 from collections.abc import Iterable
 from dataclasses import dataclass
 from functools import partial
+from operator import not_
 
 from nicegui import ui
 
@@ -18,6 +19,7 @@ class DimensionalWinnerUI(BaseUI[[]]):
     def __post_init__(self) -> None:
         super().__init__()
         self._status: str | None = None
+        self._is_working: bool = False
         self._winner: DebaterName | None = None
 
     def init_ui(self) -> None:
@@ -31,12 +33,20 @@ class DimensionalWinnerUI(BaseUI[[]]):
                 ui.separator().props("vertical")
 
         with container:
-            self._ui_status: ui.label = (
-                ui.label()
-                .classes("grow text-right text-lg")
-                .bind_text_from(self, target_name="_status")
-                .bind_visibility_from(self, target_name="_winner", backward=lambda x: x is None)
-            )
+            with ui.row().classes("grow justify-end items-center").bind_visibility_from(
+                self, target_name="_winner", backward=lambda x: x is None
+            ):
+                self._ui_status: ui.label = (
+                    ui.label().classes("text-lg").bind_text_from(self, target_name="_status")
+                )
+
+                ui.spinner("rings", size="2rem").bind_visibility_from(
+                    self, target_name="_is_working", backward=not_
+                )
+
+                ui.spinner("puff", size="2rem").bind_visibility_from(
+                    self, target_name="_is_working"
+                )
 
             self._ui_winner: ui.row = (
                 ui.row()
@@ -45,17 +55,20 @@ class DimensionalWinnerUI(BaseUI[[]]):
             )
 
     def reset(self) -> None:
-        self.set_status("Waiting for the debate to start ...")
+        self.set_status("The judge is ready.", is_working=False)
         self.set_winner(None)
 
-    def set_status(self, status: str | None, /) -> None:
+    def set_status(self, status: str | None, /, *, is_working: bool) -> None:
         self._status = status
+        self._is_working = is_working
 
     def set_winner(self, winner: DebaterName | None, /) -> None:
         self._winner = winner
         self._ui_winner.clear()
 
         if winner is not None:
+            self.set_status(None, is_working=False)
+
             is_panel: bool = self.dimension_name == ""
             text_size: str = "text-4xl" if is_panel else "text-2xl"
             icon_size: str = "4rem" if is_panel else "3rem"
@@ -119,17 +132,27 @@ class WinnerUI(BaseUI[Iterable[DimensionName] | None, Iterable[DebaterName] | No
     def start_judge(self) -> None:
         for dimension_name in self._all_dimensions_name:
             self._uis_winner[dimension_name].set_status(
-                "Waiting for dimensional judges ..." if dimension_name == "" else "Ready to judge."
+                f"Waiting for {'dimensional judges' if dimension_name == '' else 'the arena'} ...",
+                is_working=False,
             )
 
             self._uis_comment[dimension_name].start_judge()
 
     def start_analysis(self, *, dimension_name: DimensionName, speech_index: int) -> None:
-        self._uis_winner[dimension_name].set_status(f"Judging speech {speech_index} ...")
+        self._uis_winner[dimension_name].set_status(
+            f"Judging speech {speech_index} ...", is_working=True
+        )
+
         self._uis_comment[dimension_name].start_analysis(speech_index=speech_index)
 
+    def end_analysis(self, *, dimension_name: DimensionName) -> None:
+        self._uis_winner[dimension_name].set_status(
+            "Waiting for other judges and the arena ...", is_working=False
+        )
+
     def start_verdict(self, *, dimension_name: DimensionName) -> None:
-        self._uis_winner[dimension_name].set_status("Preparing final verdict ...")
+        self._uis_winner[dimension_name].set_status("Preparing final verdict ...", is_working=True)
+
         self._uis_comment[dimension_name].start_verdict(is_dimensional=dimension_name != "")
 
     def update_verdict(self, *, dimension_name: DimensionName, verdict: Verdict) -> None:
