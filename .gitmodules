@@ -1,0 +1,3 @@
+[submodule "webdoc"]
+	path = webdoc
+	url = https://github.com/ljcleo/debatrix-doc
