@@ -3,9 +3,10 @@
 This is the code repository of *Debatrix: Multi-dimensinal Debate Judge with
 Iterative Chronological Analysis based on LLM*.
 
-- [Homepage](https://github.com/ljcleo/Debatrix)
+- [Homepage](https://ljcleo.github.com/debatrix)
 - [Paper](https://arxiv.org/abs/2403.08010)
-- [Dataset (PanelBench)](https://github.com/ljcleo/Debatrix/releases/tag/v0.1)
+- [Demo](https://debatrix.hzmc.xyz:8123)
+- [Dataset (PanelBench)](https://github.com/ljcleo/debatrix/releases/tag/v0.1)
 
 ## Setup
 
@@ -115,7 +116,7 @@ button.
 ## Dataset (PanelBench)
 
 The PanelBench dataset is released in the
-[Release Page](https://github.com/ljcleo/Debatrix/releases/tag/v0.1) of this
+[Release Page](https://github.com/ljcleo/debatrix/releases/tag/v0.1) of this
 repository. It has the following structure:
 
 ```Text
