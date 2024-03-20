@@ -53,7 +53,8 @@ class DebaterScoreUI(BaseUI[[]]):
                 ui.label(text=self.debater_name).classes("text-2xl")
 
                 with ui.row().classes(
-                    "p-2 ml-auto rounded-lg items-center cursor-pointer bg-gray-500/50"
+                    "p-2 ml-auto rounded-lg items-center cursor-pointer "
+                    "transition duration-300 hover:bg-gray-500/50"
                 ).on(
                     "click",
                     partial(

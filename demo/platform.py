@@ -5,12 +5,13 @@ from random import Random
 from socket import create_server, socket
 
 from fastapi import FastAPI
-from nicegui import app, ui, Client
+from nicegui import Client, app, ui
 from uvicorn import Config, Server
 
 from debatrix.platform import BasePlatform
 
 from .session import UIBasedSession
+from .static import load_img_base64
 
 
 @dataclass
@@ -38,7 +39,11 @@ class UIBasedPlatform(BasePlatform[UIBasedSession]):
         gui_app = FastAPI(debug=self.fast_api_debug)
 
         ui.run_with(
-            gui_app, title="Debatrix Demo", favicon="♎", dark=None, storage_secret=storage_secret
+            gui_app,
+            title="Debatrix Demo",
+            favicon=f"data:image/png;base64,{load_img_base64('icon.png')}",
+            dark=None,
+            storage_secret=storage_secret,
         )
 
         self._server = Server(

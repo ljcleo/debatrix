@@ -108,14 +108,14 @@ class WinnerUI(BaseUI[Iterable[DimensionName] | None, Iterable[DebaterName] | No
         with ui.column().classes("w-full h-full"):
             with ui.column().classes("w-full grow gap-0 overflow-y-auto"):
                 for dimension_name in self._dimensions_name:
-                    with ui.card().classes("w-full h-24 cursor-pointer").on(
-                        "click", partial(self.show_comment, dimension_name=dimension_name)
-                    ):
+                    with ui.card().classes(
+                        "w-full h-24 cursor-pointer transition duration-300 hover:bg-gray-500/30"
+                    ).on("click", partial(self.show_comment, dimension_name=dimension_name)):
                         self._uis_winner[dimension_name].register_ui()
 
-            with ui.card().classes("h-40 w-full cursor-pointer").on(
-                "click", partial(self.show_comment, dimension_name=DimensionName(""))
-            ):
+            with ui.card().classes(
+                "h-40 w-full cursor-pointer transition duration-300 hover:bg-gray-500/30"
+            ).on("click", partial(self.show_comment, dimension_name=DimensionName(""))):
                 self._uis_winner[DimensionName("")].register_ui()
 
         for dimension_name in self._all_dimensions_name:
