@@ -46,14 +46,15 @@ class SessionUI(BaseUI[[Session, bool, bool]]):
                 self._ui_verdict = VerdictUI()
                 self._ui_verdict.register_ui(None, None)
 
+        self._dlg_intro: ui.dialog | None = None
+
         if enable_intro and app.storage.user.get("need_intro", True):
-            with ui.dialog().props("persistent") as dlg_intro, ui.card().classes("w-full"):
-                IntroUI().init_ui(session, dlg_intro)
+            with ui.dialog().props("persistent") as self._dlg_intro, ui.card().classes("w-full"):
+                IntroUI().init_ui(session, self._dlg_intro)
 
-            async def open_intro() -> None:
-                await dlg_intro
-
-            ui.timer(0.5, callback=open_intro, once=True)
+    async def open_intro(self) -> None:
+        if self._dlg_intro is not None:
+            await self._dlg_intro
 
     def reset(self, *, debate_info: DebateInfo) -> None:
         self._ui_arena.reset(debate_info=debate_info)

@@ -5,7 +5,7 @@ from random import Random
 from socket import create_server, socket
 
 from fastapi import FastAPI
-from nicegui import app, ui
+from nicegui import app, ui, Client
 from uvicorn import Config, Server
 
 from debatrix.platform import BasePlatform
@@ -33,7 +33,7 @@ class UIBasedPlatform(BasePlatform[UIBasedSession]):
 
         ui.page("/")(self._register_ui)
         app.on_startup(app.storage.clear)
-        app.on_exception(lambda x: ui.notify(f"Internal Error: {repr(x)}", type="negative"))
+        app.on_exception(self._notify_exception)
 
         gui_app = FastAPI(debug=self.fast_api_debug)
 
@@ -75,6 +75,18 @@ class UIBasedPlatform(BasePlatform[UIBasedSession]):
             enable_full_config_ui=self.enable_full_config_ui,
         )
 
-    async def _register_ui(self) -> None:
+    async def _register_ui(self, client: Client) -> None:
+        print("preparing", flush=True)
         session: UIBasedSession = await self.assign()
         session.register_ui()
+        await client.connected(timeout=100000000)
+        await session.open_intro()
+        await client.disconnected()
+        await session.stop_debate()
+
+    @staticmethod
+    def _notify_exception(exception: Exception, /) -> None:
+        try:
+            ui.notify(f"Internal Error: {repr(exception)}", type="negative")
+        except Exception:
+            pass

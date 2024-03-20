@@ -19,7 +19,7 @@ class ChatMessage:
 
     def append(self, chunk: str | EllipsisType, /) -> None:
         if chunk is ...:
-            if len(self._contents) > 0:
+            if len(self._contents) > 0 and not self._ui.is_deleted:
                 self._update_last()
                 self._update_last(split=True)
 
@@ -29,22 +29,30 @@ class ChatMessage:
                 self._contents.append("")
 
             self._contents[-1] += chunk
-            self._update_last()
+
+            if not self._ui.is_deleted:
+                self._update_last()
 
     def cut(self) -> list[str]:
-        if len(self._contents) > 0:
-            self._update_last()
-        else:
-            self._ui.remove(self._last_element)
+        if not self._ui.is_deleted:
+            if len(self._contents) > 0:
+                self._update_last()
+            else:
+                self._ui.remove(self._last_element)
 
         return self._contents
 
     def _update_last(self, *, split: bool = False) -> None:
+        if self._ui.is_deleted:
+            return
+
         if split:
             with self._ui:
                 self._last_element = ui.spinner("dots", size="xl", color="black")
         else:
-            self._ui.remove(self._last_element)
+            if not self._last_element.is_deleted:
+                self._ui.remove(self._last_element)
+
             content: str = prettify_json(self._contents[-1])
 
             with self._ui:

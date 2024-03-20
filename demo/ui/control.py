@@ -37,9 +37,6 @@ class ControlUI(BaseUI[Session, ui.dialog, ui.dialog, ui.dialog]):
             await session.reset_debate()
             await session.start_debate()
 
-        async def hdl_btn_stop() -> None:
-            await session.stop_debate()
-
         with ui.grid(columns=6).classes("w-full"):
             ui.select(
                 {
@@ -83,6 +80,6 @@ class ControlUI(BaseUI[Session, ui.dialog, ui.dialog, ui.dialog]):
                 session, target_name="is_start_stop_toggled", backward=not_
             )
 
-            ui.button("Stop", on_click=hdl_btn_stop, color="negative", icon="stop_circled").classes(
+            ui.button("Running", color="warning", icon="pending").classes(
                 "col-span-3 sm:col-span-2 xl:col-span-3 2xl:col-span-2"
-            ).bind_visibility_from(session, target_name="is_start_stop_toggled")
+            ).bind_visibility_from(session, target_name="is_start_stop_toggled").disable()

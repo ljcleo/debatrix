@@ -116,3 +116,6 @@ class UIBasedSession(Session):
 
     def cache_session_state(self) -> None:
         app.storage.user["state"] = self.config_data
+
+    async def open_intro(self) -> None:
+        await self._ui.open_intro()
