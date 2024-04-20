@@ -120,7 +120,7 @@ async def main(platform: Platform, /, *, args: ScriptArgs) -> None:
         task: Task[None] = tg.create_task(platform.serve())
 
         try:
-            semaphore = Semaphore(4)
+            semaphore = Semaphore(12)
 
             async def wait_and_work(debate_id: int, /) -> None:
                 async with semaphore:

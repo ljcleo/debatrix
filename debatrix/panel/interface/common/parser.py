@@ -61,7 +61,7 @@ class JSONParser:
 
                     raw = (
                         await fix_model.chat_predict(
-                            make_single_chat(
+                            messages=make_single_chat(
                                 self.config.fix_prompt_template,
                                 instructions=self.make_schema_prompt(output_type),
                                 completion=raw,
