@@ -167,10 +167,17 @@ folder.
 If you find our Debatrix or PanelBench useful, please consider citing our paper:
 
 ```BibTeX
-@article{liang2024debatrix,
-  title={Debatrix: Multi-dimensional Debate Judge with Iterative Chronological Analysis Based on LLM},
-  author={Liang, Jingcong and Ye, Rong and Han, Meng and Lai, Ruofei and Zhang, Xinyu and Huang, Xuanjing and Wei, Zhongyu},
-  journal={arXiv preprint arXiv:2403.08010},
-  year={2024}
+@InProceedings{Liang2024Debatrix,
+  author    = {Liang, Jingcong and Ye, Rong and Han, Meng and Lai, Ruofei and Zhang, Xinyu and Huang, Xuanjing and Wei, Zhongyu},
+  booktitle = {Findings of the Association for Computational Linguistics ACL 2024},
+  title     = {Debatrix: Multi-dimensional Debate Judge with Iterative Chronological Analysis Based on {LLM}},
+  year      = {2024},
+  address   = {Bangkok, Thailand and virtual meeting},
+  editor    = {Ku, Lun-Wei and Martins, Andre and Srikumar, Vivek},
+  month     = aug,
+  pages     = {14575--14595},
+  publisher = {Association for Computational Linguistics},
+  doi       = {10.18653/v1/2024.findings-acl.868},
+  url       = {https://aclanthology.org/2024.findings-acl.868},
 }
 ```
