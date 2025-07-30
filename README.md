@@ -10,12 +10,12 @@ Iterative Chronological Analysis based on LLM*.
 
 ## Setup
 
-Debatrix runs on Python 3.11 and above. We recommend using
+Debatrix runs on Python 3.13 and above. We recommend using
 [Miniconda](https://docs.conda.io/en/latest/miniconda.html) to set up a virtual
 environment:
 
 ```Shell
-conda create -n debatrix python=3.11
+conda create -n debatrix python=3.13
 ```
 
 To run the batch judging script, the following packages are required:
@@ -29,6 +29,8 @@ To run the UI demo, [NiceGUI](https://nicegui.io) is also needed:
 ```Shell
 pip install nicegui
 ```
+
+We also provide a `pyproject.toml` for `uv` users.
 
 ## Batch Judging
 

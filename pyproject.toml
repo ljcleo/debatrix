@@ -1,6 +1,6 @@
 [project]
 name = "debatrix"
-version = "0.1.0"
+version = "1.1.0"
 description = "Debatrix: LLM-based Multi-dimensional Debate Judge with Iterative Chronological Analysis"
 readme = "README.md"
 requires-python = ">=3.13"
