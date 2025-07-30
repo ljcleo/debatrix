@@ -42,7 +42,8 @@ class UIBasedPlatform(BasePlatform[UIBasedSession]):
             gui_app,
             title="Debatrix Demo",
             favicon=f"data:image/png;base64,{load_img_base64('icon.png')}",
-            dark=None,
+            # dark=None,
+            dark=False,
             storage_secret=storage_secret,
         )
 

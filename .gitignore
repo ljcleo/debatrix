@@ -163,8 +163,11 @@ cython_debug/
 .vscode/
 
 # Misc
+/.nicegui
+/resource
 /test
 /preset/bp_competition
 /preset/debate_art
 /preset/demo
 /preset/vives_debate
+/uv.lock
