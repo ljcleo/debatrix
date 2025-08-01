@@ -8,10 +8,12 @@ from .config import ArenaInterfaceConfig
 
 
 class ArenaInterfaceServer(APIServer):
-    def __init__(self, *, debug: bool = False) -> None:
-        super().__init__(debug=debug)
-
+    def __init__(self) -> None:
+        super().__init__()
         self._interfaces: dict[str, ArenaInterface] = {}
+
+    def init_app(self, /, *, debug: bool = False) -> None:
+        super().init_app(debug=debug)
 
         self.assign("/{session_id}/create", self._create)
         self.assign("/{session_id}/configure", self._configure)

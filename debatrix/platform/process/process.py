@@ -16,12 +16,10 @@ class SubProcess(Process, Generic[T]):
     ) -> None:
         super().__init__(daemon=True)
 
-        self._server: T = server_type(debug=debug)
+        self._server: T = server_type()
         self._hint = hint
-
-        self._uvicorn = Server(
-            Config(app=self._server.app, log_level="info" if log_info else "warning")
-        )
+        self._debug = debug
+        self._log_level: str = "info" if log_info else "warning"
 
         self._socket: socket = create_server(("127.0.0.1", 0))
         self._server_info = ServerInfo(address=f"http://localhost:{self._socket.getsockname()[1]}")
@@ -36,12 +34,15 @@ class SubProcess(Process, Generic[T]):
         return self._server
 
     def run(self) -> None:
+        self._server.init_app(debug=self._debug)
+        uvicorn = Server(Config(app=self._server.app, log_level=self._log_level))
+
         async def inner() -> None:
             try:
-                await self._uvicorn.serve(sockets=[self._socket])
+                await uvicorn.serve(sockets=[self._socket])
             finally:
                 print(f"goodbye {self._hint}")
-                await self._uvicorn.shutdown(sockets=[self._socket])
+                await uvicorn.shutdown(sockets=[self._socket])
                 await self._server.close()
 
         run(inner())

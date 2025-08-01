@@ -24,7 +24,7 @@ class ScriptArgs:
     enable_full_config_ui: bool = False
 
 
-if __name__ in {"__main__", "__mp_main__"}:
+def main() -> None:
     arg_parser = ArgumentParser(description="Debatrix UI demo")
 
     arg_parser.add_argument("preset", help="select debate & config preset")
@@ -78,19 +78,26 @@ if __name__ in {"__main__", "__mp_main__"}:
 
         target_path.symlink_to((preset_path / target).absolute())
 
-    Runner(debug=True).run(
-        UIBasedPlatform(
-            Path("resource"),
-            fast_api_debug=args.debug_server,
-            fast_api_log_info=args.log_server_info,
-            ui_host=args.ui_host,
-            ui_port=args.ui_port,
-            enable_intro=args.enable_intro,
-            enable_full_config_ui=args.enable_full_config_ui,
-            storage_secret=args.secret,
-        ).serve()
-    )
+    try:
+        Runner(debug=True).run(
+            UIBasedPlatform(
+                Path("resource"),
+                fast_api_debug=args.debug_server,
+                fast_api_log_info=args.log_server_info,
+                ui_host=args.ui_host,
+                ui_port=args.ui_port,
+                enable_intro=args.enable_intro,
+                enable_full_config_ui=args.enable_full_config_ui,
+                storage_secret=args.secret,
+            ).serve()
+        )
+    except KeyboardInterrupt:
+        pass
+    finally:
+        print("Cleaning up ...")
+        for target in ("motion", "speech"):
+            (resource_path / target).unlink()
 
-    print("Cleaning up ...")
-    for target in ("motion", "speech"):
-        (resource_path / target).unlink()
+
+if __name__ == "__main__":
+    main()

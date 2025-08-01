@@ -17,14 +17,16 @@ P = ParamSpec("P")
 
 
 class APIServer(ABC):
-    def __init__(self, *, debug: bool = False) -> None:
-        self._app = FastAPI(debug=debug)
+    def __init__(self) -> None:
         self._cache_queue: deque[int] = deque()
         self._cache_result: dict[int, APIResponse] = {}
 
     @property
     def app(self) -> FastAPI:
         return self._app
+
+    def init_app(self, /, *, debug: bool = False) -> None:
+        self._app = FastAPI(debug=debug)
 
     def assign(self, path: str, func: Callable[P, Coroutine[Any, Any, Any]]) -> None:
         cache = SessionCache(func=func)

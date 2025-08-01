@@ -10,10 +10,12 @@ from .config import ManagerConfig
 
 
 class ManagerServer(APIServer):
-    def __init__(self, *, debug: bool = False) -> None:
-        super().__init__(debug=debug)
-
+    def __init__(self) -> None:
+        super().__init__()
         self._managers: dict[str, Manager] = {}
+
+    def init_app(self, /, *, debug: bool = False) -> None:
+        super().init_app(debug=debug)
 
         self.assign("/{session_id}/create", self._create)
         self.assign("/{session_id}/set_arena", self._set_arena)

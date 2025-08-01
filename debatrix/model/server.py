@@ -11,10 +11,12 @@ from .embed import EmbedModel
 
 
 class ModelServer(APIServer):
-    def __init__(self, *, debug: bool = False) -> None:
-        super().__init__(debug=debug)
-
+    def __init__(self) -> None:
+        super().__init__()
         self._models: dict[str, tuple[ChatModel, EmbedModel]] = {}
+
+    def init_app(self, /, *, debug: bool = False):
+        super().init_app(debug=debug)
 
         self.assign("/{session_id}/create", self._create)
         self.assign("/{session_id}/configure", self._configure)
