@@ -171,3 +171,4 @@ cython_debug/
 /preset/demo
 /preset/vives_debate
 /uv.lock
+/uv.toml
